@@ -8,6 +8,7 @@ import type {
   Mission,
   TrustConfig,
 } from "../../core/src/index.js";
+import { sha256 } from "../../core/src/provenance.js";
 
 export interface QaObservation {
   status: "verified" | "failed" | "not_verified";
@@ -44,8 +45,23 @@ export interface QaRunOptions {
   signal?: AbortSignal;
 }
 
+const GENERATOR = "executable-trust-layer/intent-heuristics";
+const GENERATOR_VERSION = "1";
+
+function deterministicGeneration(input: unknown): NonNullable<Mission["generation"]> {
+  return {
+    method: "deterministic",
+    generator: GENERATOR,
+    version: GENERATOR_VERSION,
+    input_sha256: sha256(input),
+  };
+}
+
 function behaviorMission(behavior: ExpectedBehavior): Mission {
   const normalized = behavior.description.toLowerCase();
+  const generation = deterministicGeneration({
+    expected_behavior: { id: behavior.id, description: behavior.description },
+  });
   if (/duplicate|twice|idempotent/.test(normalized)) {
     return {
       id: behavior.id,
@@ -54,6 +70,7 @@ function behaviorMission(behavior: ExpectedBehavior): Mission {
       derived_from: [behavior.description],
       risk: "state integrity",
       viewport: "desktop",
+      generation,
     };
   }
   if (/non-admin|unauthori[sz]ed|permission/.test(normalized)) {
@@ -64,6 +81,7 @@ function behaviorMission(behavior: ExpectedBehavior): Mission {
       derived_from: [behavior.description],
       risk: "authorization",
       viewport: "desktop",
+      generation,
     };
   }
   if (/expir/.test(normalized)) {
@@ -74,6 +92,7 @@ function behaviorMission(behavior: ExpectedBehavior): Mission {
       derived_from: [behavior.description],
       risk: "time boundary",
       viewport: "desktop",
+      generation,
     };
   }
   if (/unchanged|regression|existing/.test(normalized)) {
@@ -83,6 +102,7 @@ function behaviorMission(behavior: ExpectedBehavior): Mission {
       objective: behavior.description,
       derived_from: [behavior.description],
       viewport: "desktop",
+      generation,
     };
   }
   return {
@@ -91,10 +111,12 @@ function behaviorMission(behavior: ExpectedBehavior): Mission {
     objective: behavior.description,
     derived_from: [behavior.description],
     viewport: "desktop",
+    generation,
   };
 }
 
 export function generateMissions(contract: ChangeContract): Mission[] {
+  if (contract.qa_missions?.length) return contract.qa_missions;
   const missions = contract.expected_behaviors.map(behaviorMission);
   if (contract.risks.some((risk) => /ui|responsive|mobile/.test(risk.toLowerCase()))) {
     missions.push({
@@ -104,6 +126,13 @@ export function generateMissions(contract: ChangeContract): Mission[] {
       derived_from: ["risk heuristic: mobile"],
       risk: "responsive UI",
       viewport: "mobile",
+      generation: deterministicGeneration({
+        intent: contract.intent,
+        risk_heuristic: "mobile",
+        matching_risks: contract.risks.filter((risk) =>
+          /ui|responsive|mobile/.test(risk.toLowerCase()),
+        ),
+      }),
     });
   }
   return [...new Map(missions.map((mission) => [mission.id, mission])).values()];
@@ -146,6 +175,7 @@ export async function runQa(
   const category = options.category ?? "qa";
   const evidenceId = (mission: Mission) => `${evidencePrefix}:${mission.id}`;
   const sourceId = options.sourceId ?? "qa";
+  const executor = config.qa.executor;
   if (!config.qa.adapter) {
     return {
       missions,
@@ -156,6 +186,19 @@ export async function runQa(
         status: "not_verified",
         summary: mission.title,
         reason: "No QA adapter is configured.",
+      })),
+    };
+  }
+  if (!executor) {
+    return {
+      missions,
+      evidence: missions.map((mission) => ({
+        id: evidenceId(mission),
+        source_id: sourceId,
+        category,
+        status: "not_verified",
+        summary: mission.title,
+        reason: "QA executor provenance is not declared in repository policy.",
       })),
     };
   }
@@ -174,7 +217,22 @@ export async function runQa(
     };
   }
 
-  const adapter = await loadAdapter(path.resolve(repositoryRoot, config.qa.adapter));
+  let adapter: QaAdapter;
+  try {
+    adapter = await loadAdapter(path.resolve(repositoryRoot, config.qa.adapter));
+  } catch (error) {
+    return {
+      missions,
+      evidence: missions.map((mission) => ({
+        id: evidenceId(mission),
+        source_id: sourceId,
+        category,
+        status: "not_verified",
+        summary: mission.title,
+        reason: `QA adapter could not be loaded: ${error instanceof Error ? error.message : String(error)}`,
+      })),
+    };
+  }
   await mkdir(path.join(outputDirectory, "evidence", "screenshots"), { recursive: true });
   let browser: Browser | undefined;
   const evidence: Evidence[] = [];
@@ -192,6 +250,7 @@ export async function runQa(
           status: "not_verified",
           summary: mission.title,
           reason: "The repository QA adapter has no driver for this intent-derived mission.",
+          executor,
         });
         continue;
       }
@@ -267,6 +326,7 @@ export async function runQa(
             http_error_responses: errorResponses.length,
           },
           artifacts: config.qa.screenshot ? [path.relative(outputDirectory, artifact)] : [],
+          executor,
           ...(infrastructureFailure
             ? {
                 stderr: [
@@ -294,6 +354,7 @@ export async function runQa(
           duration_ms: Date.now() - started,
           stderr: error instanceof Error ? error.stack : String(error),
           artifacts: [path.relative(outputDirectory, artifact)],
+          executor,
         });
       } finally {
         await context.close();

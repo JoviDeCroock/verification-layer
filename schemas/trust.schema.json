@@ -700,6 +700,43 @@
                 "type": "string",
                 "minLength": 1
               },
+              "executor": {
+                "type": "object",
+                "properties": {
+                  "method": {
+                    "type": "string",
+                    "enum": [
+                      "deterministic",
+                      "model"
+                    ]
+                  },
+                  "adapter": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "version": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "provider": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "model": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "prompt_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                },
+                "required": [
+                  "method",
+                  "adapter",
+                  "version"
+                ]
+              },
               "base_url": {
                 "type": "string",
                 "format": "uri"
@@ -763,6 +800,43 @@
               "adapter": {
                 "type": "string",
                 "minLength": 1
+              },
+              "executor": {
+                "type": "object",
+                "properties": {
+                  "method": {
+                    "type": "string",
+                    "enum": [
+                      "deterministic",
+                      "model"
+                    ]
+                  },
+                  "adapter": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "version": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "provider": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "model": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "prompt_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                },
+                "required": [
+                  "method",
+                  "adapter",
+                  "version"
+                ]
               },
               "base_url": {
                 "type": "string",
@@ -840,6 +914,43 @@
         },
         "adapter": {
           "type": "string"
+        },
+        "executor": {
+          "type": "object",
+          "properties": {
+            "method": {
+              "type": "string",
+              "enum": [
+                "deterministic",
+                "model"
+              ]
+            },
+            "adapter": {
+              "type": "string",
+              "minLength": 1
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "provider": {
+              "type": "string",
+              "minLength": 1
+            },
+            "model": {
+              "type": "string",
+              "minLength": 1
+            },
+            "prompt_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "method",
+            "adapter",
+            "version"
+          ]
         },
         "preview_url": {
           "type": "string",

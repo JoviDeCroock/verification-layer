@@ -18,6 +18,7 @@ import pc from "picocolors";
 import YAML from "yaml";
 import {
   computeVerdict,
+  changeContractSchema,
   doctorResultSchema,
   incidentSchema,
   reportAttestationRequestSchema,
@@ -67,6 +68,7 @@ import { validateReportSemantics } from "../../core/src/report-validation.js";
 import { TRUST_VERSION } from "../../core/src/version.js";
 import { runProcess } from "../../runner/src/index.js";
 import { appendAuditJournal, parseAuditJournal } from "../../core/src/audit.js";
+import { generateMissions } from "../../qa/src/index.js";
 
 const cli = cac("trust");
 const list = (value: unknown): string[] => {
@@ -300,9 +302,12 @@ cli
     console.log(`Keys are active until ${notAfter}.`);
     console.log("\nNext:");
     console.log(`1. trust schema:export ${path.join(discovery.root, ".trust", "schemas")}`);
-    console.log(`2. trust doctor --config ${configFile}`);
-    console.log(`3. Create and sign a contract with ${targets.approverPrivate}.`);
-    console.log(`4. Store ${targets.reporterPrivate} in protected CI authority.`);
+    console.log(`2. Review discovered checks and define product surfaces in ${configFile}.`);
+    console.log(
+      `3. trust doctor --config ${configFile} (it remains blocked until the evidence model is complete)`,
+    );
+    console.log(`4. Create and sign a contract with ${targets.approverPrivate}.`);
+    console.log(`5. Store ${targets.reporterPrivate} in protected CI authority.`);
   });
 
 cli
@@ -573,7 +578,7 @@ cli
         "No evidence could be derived from the selected surfaces. Add surface requirements or pass --evidence.",
       );
     const id = String(options.id ?? slugify(intent));
-    const contract = {
+    const draft = changeContractSchema.parse({
       version: 1,
       id,
       intent,
@@ -589,7 +594,11 @@ cli
       required_evidence: derivedEvidence,
       excluded: [],
       approval: { status: "draft" },
-    };
+    });
+    const contract = changeContractSchema.parse({
+      ...draft,
+      qa_missions: generateMissions(draft),
+    });
     await writeYamlFile(path.resolve(output), contract);
     console.log(pc.green(`Created draft contract ${path.resolve(output)}`));
     console.log(pc.dim("Review behavior coverage, risks, and exclusions before approval."));
@@ -674,6 +683,16 @@ cli
     const activeReporters = trustedReporters.filter(
       (key) => !authorityKeyValidityProblem(key, now),
     );
+    const evidenceSourceCount =
+      config.checks.length + config.invariants.length + config.verifiers.length;
+    if (!evidenceSourceCount)
+      problems.push(
+        "verification: no checks, invariants, or verifiers are configured; an empty policy cannot establish trust",
+      );
+    if (!config.surfaces.length)
+      problems.push(
+        "verification: no product surfaces are configured; approved intent cannot be scoped to the repository",
+      );
     if (config.authority?.allow_local_approvals !== true && !activeApprovers.length)
       problems.push(
         "authority: local approvals are disabled but no active trusted approver keys are configured",
@@ -701,6 +720,14 @@ cli
       warnings.push(
         `execution: up to ${config.execution!.max_attempts} attempts are recorded; any failed attempt remains fail-closed evidence`,
       );
+    if (
+      config.surfaces.some(
+        (surface) => surface.id === "repository" && surface.paths.includes("**/*"),
+      )
+    )
+      warnings.push(
+        "surfaces: repository-wide starter surface is active; replace it with approved product boundaries when practical",
+      );
     for (const key of [...trustedApprovers, ...trustedReporters]) {
       if (!publicKeyIsValid(key.public_key_base64))
         problems.push(`authority: ${key.id} does not contain a valid Ed25519 public key`);
@@ -711,6 +738,8 @@ cli
     }
     for (const verifier of config.verifiers) {
       if (verifier.kind === "agent-browser" || verifier.kind === "agent-device") {
+        if (!verifier.executor)
+          problems.push(`${verifier.id}: missing QA executor provenance in repository policy`);
         const adapter = path.resolve(repositoryRoot, verifier.adapter);
         try {
           await access(adapter);
@@ -726,6 +755,17 @@ cli
           problems.push(`${verifier.id}: missing executable ${executable}`);
         }
       }
+    }
+    if (config.qa.enabled) {
+      if (!config.qa.adapter) problems.push("qa: enabled but no adapter is configured");
+      if (!config.qa.executor)
+        problems.push("qa: enabled but executor provenance is not declared in repository policy");
+      if (config.qa.adapter)
+        try {
+          await access(path.resolve(repositoryRoot, config.qa.adapter));
+        } catch {
+          problems.push(`qa: missing adapter ${path.resolve(repositoryRoot, config.qa.adapter)}`);
+        }
     }
     if (options.contract) {
       const contract = await loadChangeContract(path.resolve(options.contract));

@@ -4,7 +4,9 @@ intent: Add organization invitations without weakening authorization or existing
 expected_behaviors:
   - id: happy-path
     description: admins can invite users by email
-    evidence: [intent-browser#happy-path, intent-device#happy-path]
+    evidence:
+      - intent-browser#happy-path
+      - intent-device#happy-path
   - id: authorization
     description: non-admins cannot invite users
     evidence:
@@ -13,13 +15,20 @@ expected_behaviors:
       - intent-device#authorization
   - id: duplicate-submission
     description: duplicate invitations do not create duplicate pending invitations
-    evidence: [intent-browser#duplicate-submission, intent-device#duplicate-submission]
+    evidence:
+      - intent-browser#duplicate-submission
+      - intent-device#duplicate-submission
   - id: expiration
     description: invitations expire after seven days
-    evidence: [intent-browser#expiration, intent-device#expiration]
+    evidence:
+      - intent-browser#expiration
+      - intent-device#expiration
   - id: regression
     description: existing signup behavior remains unchanged
-    evidence: [playwright-ui, intent-browser#regression, intent-device#regression]
+    evidence:
+      - playwright-ui
+      - intent-browser#regression
+      - intent-device#regression
 affected_surfaces:
   - team-management
   - authentication
@@ -36,12 +45,83 @@ required_evidence:
   - trust-cli
   - intent-browser
   - intent-device
+qa_missions:
+  - id: happy-path
+    title: admins can invite users by email
+    objective: admins can invite users by email
+    derived_from:
+      - admins can invite users by email
+    viewport: desktop
+    generation:
+      method: deterministic
+      generator: executable-trust-layer/intent-heuristics
+      version: "1"
+      input_sha256: d2e427004b85d96ec9b016d981d58e0cf7ec49a8ac06aaaccdf24e6812dea058
+  - id: authorization
+    title: Unauthorized actor is denied
+    objective: non-admins cannot invite users
+    derived_from:
+      - non-admins cannot invite users
+    risk: authorization
+    viewport: desktop
+    generation:
+      method: deterministic
+      generator: executable-trust-layer/intent-heuristics
+      version: "1"
+      input_sha256: 64954a5a22841baf40c05ccfdc476523433136ff8656e2cf4d41281e94e8f808
+  - id: duplicate-submission
+    title: Retry and duplicate submission
+    objective: duplicate invitations do not create duplicate pending invitations
+    derived_from:
+      - duplicate invitations do not create duplicate pending invitations
+    risk: state integrity
+    viewport: desktop
+    generation:
+      method: deterministic
+      generator: executable-trust-layer/intent-heuristics
+      version: "1"
+      input_sha256: 58da06fbc16b061a046664ea30b6aa3f80431b5727eecbccb52333c6d035cde5
+  - id: expiration
+    title: Expired artifact is rejected
+    objective: invitations expire after seven days
+    derived_from:
+      - invitations expire after seven days
+    risk: time boundary
+    viewport: desktop
+    generation:
+      method: deterministic
+      generator: executable-trust-layer/intent-heuristics
+      version: "1"
+      input_sha256: 9a89ab7ebc1e0649b4e02cd625647d22eeab1be4536b7ec0a95c8e71a2f1c52a
+  - id: regression
+    title: Existing adjacent journey remains intact
+    objective: existing signup behavior remains unchanged
+    derived_from:
+      - existing signup behavior remains unchanged
+    viewport: desktop
+    generation:
+      method: deterministic
+      generator: executable-trust-layer/intent-heuristics
+      version: "1"
+      input_sha256: a786b57d0f969d9946ca0a76abf9f6f7a9a3171e6f8091a5c45f07f7553bc773
+  - id: mobile-journey
+    title: Primary journey works on a mobile viewport
+    objective: Add organization invitations without weakening authorization or existing signup behavior.
+    derived_from:
+      - "risk heuristic: mobile"
+    risk: responsive UI
+    viewport: mobile
+    generation:
+      method: deterministic
+      generator: executable-trust-layer/intent-heuristics
+      version: "1"
+      input_sha256: bb7ad28ac0f4fbd42c9fff8faa8b2cbc8211b7e615f143fece971a282e0caf0a
 excluded:
   - item: production email delivery
     reason: The demo has no external email provider.
 approval:
   status: approved
   approved_by: demo-product-owner
-  approved_at: 2026-08-25T04:00:00.000Z
-  content_sha256: b7a23e120cce88ebf9248383fb98cbd16e5d4a85bad911c58200de5b96e8c4f6
+  approved_at: 2026-08-25T11:21:16.645Z
   method: local
+  content_sha256: 330da19dc36bce92b8884b9c6b77e3a170689791debda35d8d7135865f200962

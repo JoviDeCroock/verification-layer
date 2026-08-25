@@ -34,6 +34,10 @@ export function reviewContract(
     blockingIssues.push("At least one evidence source must be explicitly required.");
   if (!contract.risks.length)
     warnings.push("No risks were declared; risk-derived QA will be limited.");
+  if (!contract.qa_missions?.length)
+    warnings.push(
+      "No QA missions are bound into the approved contract; verification will use the versioned deterministic fallback generator.",
+    );
   const behaviorIds = contract.expected_behaviors.map((behavior) => behavior.id);
   for (const id of new Set(behaviorIds))
     if (behaviorIds.filter((candidate) => candidate === id).length > 1)
@@ -82,5 +86,6 @@ export function contractSummary(contract: ChangeContract): string {
     `Surfaces: ${contract.affected_surfaces.join(", ") || "inferred"}`,
     `Risks: ${contract.risks.join(", ") || "none declared"}`,
     `Required evidence: ${contract.required_evidence.join(", ") || "none declared"}`,
+    `Approved QA missions: ${contract.qa_missions?.length ?? 0}`,
   ].join("\n");
 }

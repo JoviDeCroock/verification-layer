@@ -273,6 +273,7 @@ function qaConfig(
     qa: {
       enabled: true,
       adapter: verifier.adapter,
+      ...(verifier.executor ? { executor: verifier.executor } : {}),
       ...(verifier.base_url ? { preview_url: verifier.base_url } : {}),
       instructions: verifier.instructions,
       screenshot: verifier.screenshot,

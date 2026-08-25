@@ -49,9 +49,33 @@ export const surfaceSchema = z.object({
   depends_on: stringList,
 });
 
+export const qaExecutorSchema = z
+  .object({
+    method: z.enum(["deterministic", "model"]),
+    adapter: z.string().min(1),
+    version: z.string().min(1),
+    provider: z.string().min(1).optional(),
+    model: z.string().min(1).optional(),
+    prompt_sha256: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
+  })
+  .superRefine((executor, context) => {
+    if (executor.method !== "model") return;
+    for (const field of ["provider", "model", "prompt_sha256"] as const)
+      if (!executor[field])
+        context.addIssue({
+          code: "custom",
+          message: `Model-driven QA executors require ${field}.`,
+          path: [field],
+        });
+  });
+
 export const qaSchema = z.object({
   enabled: z.boolean().default(false),
   adapter: z.string().optional(),
+  executor: qaExecutorSchema.optional(),
   preview_url: z.string().url().optional(),
   instructions: stringList,
   screenshot: z.boolean().default(true),
@@ -159,6 +183,7 @@ export const verifierSchema = z.discriminatedUnion("kind", [
   verifierBaseSchema.extend({
     kind: z.literal("agent-browser"),
     adapter: z.string().min(1),
+    executor: qaExecutorSchema.optional(),
     base_url: z.string().url().optional(),
     instructions: stringList,
     screenshot: z.boolean().default(true),
@@ -166,6 +191,7 @@ export const verifierSchema = z.discriminatedUnion("kind", [
   verifierBaseSchema.extend({
     kind: z.literal("agent-device"),
     adapter: z.string().min(1),
+    executor: qaExecutorSchema.optional(),
     base_url: z.string().url().optional(),
     instructions: stringList,
     screenshot: z.boolean().default(true),
@@ -298,6 +324,42 @@ export const trustConfigSchema = z
     for (const id of surfaceIds) visit(id, []);
   });
 
+export const missionGenerationSchema = z
+  .object({
+    method: z.enum(["deterministic", "model"]),
+    generator: z.string().min(1),
+    version: z.string().min(1),
+    input_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+    provider: z.string().min(1).optional(),
+    model: z.string().min(1).optional(),
+    prompt_sha256: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
+  })
+  .superRefine((generation, context) => {
+    if (generation.method !== "model") return;
+    for (const field of ["provider", "model", "prompt_sha256"] as const)
+      if (!generation[field])
+        context.addIssue({
+          code: "custom",
+          message: `Model-generated missions require ${field}.`,
+          path: [field],
+        });
+  });
+
+export const missionSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  objective: z.string(),
+  derived_from: z.array(z.string()),
+  risk: z.string().optional(),
+  viewport: z.enum(["desktop", "mobile"]).default("desktop"),
+  // Optional for verification of reports created before generation provenance shipped.
+  // All missions produced by the current generator populate this field.
+  generation: missionGenerationSchema.optional(),
+});
+
 export const expectedBehaviorSchema = z.object({
   id: z
     .string()
@@ -315,6 +377,7 @@ export const changeContractSchema = z.object({
   affected_surfaces: stringList,
   risks: stringList,
   required_evidence: stringList,
+  qa_missions: z.array(missionSchema).min(1).optional(),
   excluded: z.array(z.object({ item: z.string(), reason: z.string() })).default([]),
   approval: z
     .object({
@@ -369,15 +432,6 @@ export const changeContractSchema = z.object({
     }),
 });
 
-export const missionSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  objective: z.string(),
-  derived_from: z.array(z.string()),
-  risk: z.string().optional(),
-  viewport: z.enum(["desktop", "mobile"]).default("desktop"),
-});
-
 export const evidenceSchema = z.object({
   id: z.string(),
   category: z.enum([
@@ -404,6 +458,8 @@ export const evidenceSchema = z.object({
   measurements: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
   artifacts: z.array(z.string()).optional(),
   reason: z.string().optional(),
+  // Optional so historical signed version-1 reports remain verifiable.
+  executor: qaExecutorSchema.optional(),
 });
 
 export const verificationPlanSchema = z.object({
@@ -544,6 +600,7 @@ export type Verifier = z.infer<typeof verifierSchema>;
 export type ChangeContract = z.infer<typeof changeContractSchema>;
 export type ExpectedBehavior = z.infer<typeof expectedBehaviorSchema>;
 export type Mission = z.infer<typeof missionSchema>;
+export type QaExecutor = z.infer<typeof qaExecutorSchema>;
 export type Evidence = z.infer<typeof evidenceSchema>;
 export type ReportAttestationRequest = z.infer<typeof reportAttestationRequestSchema>;
 export type AuditEntryPayload = z.infer<typeof auditEntryPayloadSchema>;

@@ -19,5 +19,15 @@ describe("production policy discovery", () => {
       max_attempts: 1,
       retry_backoff_ms: 250,
     });
+    expect(report.config.surfaces).toEqual([
+      expect.objectContaining({
+        id: "repository",
+        paths: ["**/*"],
+        requires: expect.arrayContaining(["typecheck", "test", "build", "playwright"]),
+      }),
+    ]);
+    expect(report.potentialGaps).toEqual(
+      expect.arrayContaining([expect.stringContaining("repository-wide starter surface")]),
+    );
   });
 });

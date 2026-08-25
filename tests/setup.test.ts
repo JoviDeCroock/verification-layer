@@ -26,6 +26,24 @@ async function setup(repository: string) {
   });
 }
 
+async function doctor(repository: string) {
+  return runProcess({
+    executable: process.execPath,
+    args: [
+      "--import",
+      "tsx",
+      "packages/cli/src/index.ts",
+      "doctor",
+      "--config",
+      path.join(repository, "trust.yaml"),
+      "--format",
+      "json",
+    ],
+    cwd: process.cwd(),
+    timeoutMs: 30_000,
+  });
+}
+
 describe("first-run setup", () => {
   it("creates strict, separate, expiring authority without overwriting", async () => {
     const repository = await mkdtemp(path.join(os.tmpdir(), "trust-setup-"));
@@ -68,11 +86,44 @@ describe("first-run setup", () => {
       expect((await stat(path.join(keyDirectory, "reporter.private.pem"))).mode & 0o777).toBe(
         0o600,
       );
+      const readiness = await doctor(repository);
+      expect(readiness.exitCode).toBe(1);
+      expect(JSON.parse(readiness.stdout)).toEqual(
+        expect.objectContaining({
+          ready: false,
+          problems: expect.arrayContaining([expect.stringContaining("shell-backed checks")]),
+          warnings: expect.arrayContaining([
+            expect.stringContaining("repository-wide starter surface"),
+          ]),
+        }),
+      );
       const originalPolicy = await readFile(path.join(repository, "trust.yaml"), "utf8");
       const second = await setup(repository);
       expect(second.exitCode).toBe(1);
       expect(second.stderr).toContain("Refusing to overwrite");
       expect(await readFile(path.join(repository, "trust.yaml"), "utf8")).toBe(originalPolicy);
+    } finally {
+      await rm(repository, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects an empty policy even when authority identities are ready", async () => {
+    const repository = await mkdtemp(path.join(os.tmpdir(), "trust-setup-empty-"));
+    try {
+      const first = await setup(repository);
+      expect(first.exitCode, first.stderr).toBe(0);
+      const readiness = await doctor(repository);
+      expect(readiness.exitCode).toBe(1);
+      expect(JSON.parse(readiness.stdout)).toEqual(
+        expect.objectContaining({
+          ready: false,
+          counts: expect.objectContaining({ checks: 0, invariants: 0, verifiers: 0, surfaces: 0 }),
+          problems: expect.arrayContaining([
+            expect.stringContaining("no checks, invariants, or verifiers"),
+            expect.stringContaining("no product surfaces"),
+          ]),
+        }),
+      );
     } finally {
       await rm(repository, { recursive: true, force: true });
     }

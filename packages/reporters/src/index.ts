@@ -16,6 +16,58 @@ const terminalIcon = (status: Evidence["status"]): string => {
   return pc.dim(icon);
 };
 
+function missionGenerationSummary(report: TrustReport): string[] {
+  const groups = new Map<
+    string,
+    { generation: TrustReport["qa_missions"][number]["generation"]; count: number }
+  >();
+  for (const mission of report.qa_missions) {
+    const generation = mission.generation;
+    const key = generation
+      ? JSON.stringify({
+          method: generation.method,
+          generator: generation.generator,
+          version: generation.version,
+          provider: generation.provider,
+          model: generation.model,
+          prompt_sha256: generation.prompt_sha256,
+        })
+      : "legacy";
+    const group = groups.get(key);
+    if (group) group.count += 1;
+    else groups.set(key, { generation, count: 1 });
+  }
+  if (!groups.size) return ["No QA missions were generated."];
+  return [...groups.values()].map(({ generation, count }) =>
+    generation === undefined
+      ? `Legacy mission provenance was not recorded for ${count} mission(s).`
+      : generation.method === "model"
+        ? `Model: ${generation.provider}/${generation.model}; generator ${generation.generator}@${generation.version}; prompt ${generation.prompt_sha256}; ${count} mission(s)`
+        : `Deterministic: ${generation.generator}@${generation.version}; no LLM used; ${count} mission(s)`,
+  );
+}
+
+function qaExecutorSummary(report: TrustReport): string[] {
+  const executors = [
+    ...new Map(
+      report.evidence
+        .filter((item) => item.category === "qa" || item.category === "device")
+        .map((item) => {
+          const executor = item.executor ?? null;
+          return [JSON.stringify(executor), executor] as const;
+        }),
+    ).values(),
+  ];
+  if (!executors.length) return ["No QA executor ran."];
+  return executors.map((executor) =>
+    executor === null
+      ? "Legacy evidence: QA executor provenance was not recorded."
+      : executor.method === "model"
+        ? `Model: ${executor.provider}/${executor.model}; adapter ${executor.adapter}@${executor.version}; prompt ${executor.prompt_sha256}`
+        : `Deterministic: ${executor.adapter}@${executor.version}; no LLM used`,
+  );
+}
+
 export function renderTerminalReport(report: TrustReport): string {
   const lines = [
     pc.bold("CHANGE VERIFICATION"),
@@ -47,6 +99,10 @@ export function renderTerminalReport(report: TrustReport): string {
   lines.push("", pc.bold("Verification"));
   for (const evidence of report.evidence.filter((item) => item.category !== "claim"))
     lines.push(`${terminalIcon(evidence.status)} ${evidence.summary}`);
+  lines.push("", pc.bold("QA mission generation"));
+  for (const summary of missionGenerationSummary(report)) lines.push(summary);
+  lines.push("", pc.bold("QA execution"));
+  for (const summary of qaExecutorSummary(report)) lines.push(summary);
   lines.push("", pc.bold("Experiential evidence"));
   const qa = report.evidence.filter((item) => item.category === "qa" || item.category === "device");
   if (!qa.length) lines.push(`${pc.dim("–")} Not applicable`);
@@ -105,6 +161,14 @@ export function renderMarkdownReport(report: TrustReport): string {
   lines.push("", "## Verification", "");
   for (const evidence of report.evidence.filter((item) => item.category !== "claim"))
     lines.push(`- ${statusIcon(evidence.status)} **${evidence.id}** — ${evidence.summary}`);
+  lines.push("", "## QA mission generation", "");
+  for (const summary of missionGenerationSummary(report)) lines.push(`- ${summary}`);
+  for (const mission of report.qa_missions)
+    lines.push(
+      `- **${mission.id}** — ${mission.title}; derived from ${mission.derived_from.map((source) => `\`${source}\``).join(", ")}${mission.generation ? `; input \`${mission.generation.input_sha256.slice(0, 12)}\`` : ""}`,
+    );
+  lines.push("", "## QA execution", "");
+  for (const summary of qaExecutorSummary(report)) lines.push(`- ${summary}`);
   lines.push("", "## Evidence selection", "");
   for (const [id, reasons] of Object.entries(report.plan.selection_reasons))
     lines.push(`- **${id}**: ${reasons.join("; ")}`);

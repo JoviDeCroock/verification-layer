@@ -160,6 +160,10 @@ verifiers:
     label: Independent browser agent
     kind: agent-browser
     adapter: qa/adapter.ts
+    executor:
+      method: deterministic
+      adapter: trust-demo/playwright-journeys
+      version: "1"
     scope: [src/**, public/**]
     tags: [authorization, state integrity]
     required: false
@@ -172,6 +176,10 @@ verifiers:
     label: Independent device agent
     kind: agent-device
     adapter: qa/adapter.ts
+    executor:
+      method: deterministic
+      adapter: trust-demo/playwright-journeys
+      version: "1"
     scope: [src/client.tsx, public/**]
     tags: [mobile ui]
     required: false
