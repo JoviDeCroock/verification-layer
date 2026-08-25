@@ -285,3 +285,13 @@ digest-bound review packets for a real executed pilot and applies completed labe
 the raw model artifact; verification itself remains deterministic. See
 [mission generation](docs/mission-generation.md) and the
 [Terra/Sol/Luna benchmark](docs/mission-generation-benchmark-2026-08-25.md).
+
+## Contributing and releases
+
+Executable Trust Layer is available under the [Apache License 2.0](LICENSE). See
+[CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and Changeset policy, and
+[the release guide](docs/releases.md) for version pull requests, package validation, and the
+maintainer-controlled publishing boundary. The release-preparation workflow never publishes to npm.
+
+Please report vulnerabilities through the private process in [SECURITY.md](SECURITY.md), not a
+public issue.

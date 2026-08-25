@@ -48,6 +48,10 @@ Safety constraints:
 - Do not edit generated files under `.trust/runs/`; rerun verification instead.
 - Do not weaken local or attested authority policy to convert a failing verdict into success.
 - Run `pnpm check` after code, schema, or policy-interface changes.
+- Add a Changeset for every user-visible package change. Documentation, tests, and internal release
+  infrastructure do not require one.
+- Never run `pnpm release`, `changeset publish`, or `npm publish` unless the maintainer explicitly
+  requests publication.
 
 CLI exit conventions are: `0` for a successful command or trusted verdict, `1` for runtime errors,
 failed readiness, or an untrusted/insufficient verdict, and `2` for an invalid change contract during
