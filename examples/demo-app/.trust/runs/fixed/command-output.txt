@@ -1,0 +1,56 @@
+CHANGE VERIFICATION
+
+Intent
+Add organization invitations without weakening authorization or existing signup behavior.
+
+Plan
+✓ approved
+
+Implementation
+2 changed file(s)
+
+Verification
+✓ Change contract was approved before verification.
+✓ Preact client build passed.
+✓ TypeScript passed.
+✓ Unit tests passed.
+✓ Preact client bundle: 36304 bytes within threshold.
+✓ GET /api/health satisfied its response contract.
+✓ POST /api/invitations satisfied its response contract.
+✓ An administrator invited a new user through the running UI.
+✓ A non-admin was denied and no invitation was created.
+✓ Retry and concurrent submission reused one pending invitation.
+✓ An expired invitation was rejected in the acceptance journey.
+✓ The existing signup surface remained reachable and interactive.
+✓ An administrator invited a new user through the running UI.
+✓ A non-admin was denied and no invitation was created.
+✓ Retry and concurrent submission reused one pending invitation.
+✓ An expired invitation was rejected in the acceptance journey.
+✓ The existing signup surface remained reachable and interactive.
+✓ An administrator invited a new user through the running UI.
+✓ Native Playwright suite passed.
+✓ CLI mission version passed.
+✓ CLI mission selective-plan passed.
+
+Experiential evidence
+✓ An administrator invited a new user through the running UI.
+✓ A non-admin was denied and no invitation was created.
+✓ Retry and concurrent submission reused one pending invitation.
+✓ An expired invitation was rejected in the acceptance journey.
+✓ The existing signup surface remained reachable and interactive.
+✓ An administrator invited a new user through the running UI.
+✓ A non-admin was denied and no invitation was created.
+✓ Retry and concurrent submission reused one pending invitation.
+✓ An expired invitation was rejected in the acceptance journey.
+✓ The existing signup surface remained reachable and interactive.
+✓ An administrator invited a new user through the running UI.
+
+Unverified assumptions
+! production email delivery was not verified: The demo has no external email provider.
+
+Learning proposals
++ [knowledge] Document how to verify: production email delivery was not verified: The demo has no external email provider.
+
+VERDICT
+✓ Change satisfies approved intent.
+
