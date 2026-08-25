@@ -1,42 +1,73 @@
 {
   "name": "executable-trust-layer",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
+  "description": "Fail-closed intent, evidence, provenance, and attestation authority for software changes",
+  "keywords": [
+    "attestation",
+    "ci",
+    "policy",
+    "trust",
+    "verification"
+  ],
+  "homepage": "https://github.com/JoviDeCroock/verification-layer#readme",
+  "bugs": {
+    "url": "https://github.com/JoviDeCroock/verification-layer/issues"
+  },
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JoviDeCroock/verification-layer.git"
+  },
+  "bin": {
+    "trust": "./dist/packages/cli/src/index.js"
+  },
+  "files": [
+    "dist/packages",
+    "docs",
+    "schemas",
+    "README.md"
+  ],
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "tsc --noEmit && pnpm --dir examples/demo-app build",
-    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "build": "pnpm build:cli && pnpm --dir examples/demo-app build",
+    "build:cli": "tsc -p tsconfig.build.json",
+    "check": "pnpm typecheck && pnpm lint && pnpm schemas:check && pnpm test",
     "demo:prove": "node --import tsx scripts/prove-demo.ts",
     "format": "oxfmt .",
     "lint": "oxlint --deny-warnings packages scripts tests examples/demo-app/src examples/demo-app/qa examples/demo-app/e2e examples/demo-app/playwright.config.ts",
+    "prepack": "pnpm build:cli",
+    "prepublishOnly": "pnpm check",
+    "schemas": "node --import tsx scripts/generate-schemas.ts",
+    "schemas:check": "node --import tsx scripts/generate-schemas.ts --check",
     "test": "vitest run",
     "trust": "node --import tsx packages/cli/src/index.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@hono/node-server": "latest",
-    "@playwright/test": "latest",
-    "@preact/signals": "latest",
-    "cac": "latest",
-    "drizzle-orm": "latest",
-    "esbuild": "latest",
-    "fast-glob": "latest",
-    "hono": "latest",
-    "micromatch": "latest",
-    "picocolors": "latest",
-    "preact": "latest",
-    "yaml": "latest",
-    "zod": "latest"
+    "@playwright/test": "1.62.1",
+    "cac": "7.0.0",
+    "fast-glob": "3.3.3",
+    "micromatch": "4.0.8",
+    "picocolors": "1.1.1",
+    "yaml": "2.9.0",
+    "zod": "4.4.3"
   },
   "devDependencies": {
-    "@types/micromatch": "latest",
-    "@types/node": "latest",
-    "oxfmt": "latest",
-    "oxlint": "latest",
-    "tsx": "latest",
-    "typescript": "latest",
-    "vitest": "latest",
-    "wrangler": "latest"
+    "@types/micromatch": "4.0.10",
+    "@types/node": "26.2.0",
+    "oxfmt": "0.64.0",
+    "oxlint": "1.79.0",
+    "tsx": "4.23.12",
+    "typescript": "7.0.2",
+    "vitest": "4.1.11",
+    "wrangler": "4.125.0"
+  },
+  "engines": {
+    "node": ">=22"
   },
   "packageManager": "pnpm@11.3.0"
 }

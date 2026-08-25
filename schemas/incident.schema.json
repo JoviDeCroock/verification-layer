@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "version": {
+      "default": 1,
+      "type": "number",
+      "const": 1
+    },
+    "title": {
+      "type": "string"
+    },
+    "related_change": {
+      "type": "string"
+    },
+    "cause": {
+      "type": "string"
+    },
+    "missed_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "affected_surfaces": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "title",
+    "cause",
+    "missed_by"
+  ],
+  "$id": "urn:executable-trust:v1:incident",
+  "title": "Executable Trust incident"
+}
