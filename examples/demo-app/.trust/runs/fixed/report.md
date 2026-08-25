@@ -11,13 +11,13 @@ Add organization invitations without weakening authorization or existing signup 
 ## Implementation
 
 - 2 changed file(s)
-- Commit: `1b874acb31c36d9f8c8ce084a2521577317ee671`
+- Commit: `5464033f6c095a3a6030e2860dfa519558f21b81`
 - Branch: `main`
 - Working tree: dirty
 - Change-set source: explicit
 - Contract digest: `1322216099c82749f025a19b68b8c4e5f4fb1e11c363a520ae9ece1b5dc867ef`
 - Policy digest: `945800eee71a66057f63cfd0b92d6e9b83dc5b409b522b35e5bdbda6633364eb`
-- Plan digest: `dfcd0b090c26f52132a203071325875b0f4cd3e160bd6771f946ba1ef6d09a3e`
+- Plan digest: `9cf4db0608645baf8941958287ddc2082af1855c44f9cd1eb0fcdf30a625834a`
 - Change-set digest: `bf906672942deba40b15d2e4f1c7cb46cd4839af28d645f163cf0e35566bc9d4`
 - Attestation: none
 - Assurance: trial
