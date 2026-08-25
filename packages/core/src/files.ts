@@ -1,4 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import YAML from "yaml";
 import {
@@ -27,8 +28,19 @@ export async function loadTrustReport(file: string): Promise<TrustReport> {
 }
 
 export async function writeTextFile(file: string, contents: string): Promise<void> {
-  await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(file, contents, "utf8");
+  const directory = path.dirname(file);
+  await mkdir(directory, { recursive: true });
+  const temporary = path.join(
+    directory,
+    `.${path.basename(file)}.${process.pid}.${randomUUID()}.tmp`,
+  );
+  try {
+    await writeFile(temporary, contents, { encoding: "utf8", flag: "wx" });
+    await rename(temporary, file);
+  } catch (error) {
+    await unlink(temporary).catch(() => undefined);
+    throw error;
+  }
 }
 
 export async function writeJsonFile(file: string, value: unknown): Promise<void> {

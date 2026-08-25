@@ -33,8 +33,19 @@ export function renderTerminalReport(report: TrustReport): string {
     pc.bold("Implementation"),
     `${report.implementation.changed_files} changed file(s)`,
   );
+  lines.push(
+    `Commit: ${report.provenance.repository.head_sha?.slice(0, 12) ?? "unavailable"}`,
+    `Branch: ${report.provenance.repository.branch ?? "detached or unavailable"}`,
+    `Working tree: ${report.provenance.repository.dirty ? pc.yellow("dirty") : pc.green("clean")}`,
+    `Change set: ${report.provenance.repository.changed_files_source}`,
+    `Snapshot: ${report.provenance.digests.change_set_sha256.slice(0, 12)}`,
+    `Attestation: ${report.attestation ? `${report.attestation.signer_id} (${report.attestation.algorithm})` : "none"}`,
+  );
+  lines.push("", pc.bold("Behavior claims"));
+  const claims = report.evidence.filter((item) => item.category === "claim");
+  for (const claim of claims) lines.push(`${terminalIcon(claim.status)} ${claim.summary}`);
   lines.push("", pc.bold("Verification"));
-  for (const evidence of report.evidence)
+  for (const evidence of report.evidence.filter((item) => item.category !== "claim"))
     lines.push(`${terminalIcon(evidence.status)} ${evidence.summary}`);
   lines.push("", pc.bold("Experiential evidence"));
   const qa = report.evidence.filter((item) => item.category === "qa" || item.category === "device");
@@ -71,11 +82,28 @@ export function renderMarkdownReport(report: TrustReport): string {
     "## Implementation",
     "",
     `- ${report.implementation.changed_files} changed file(s)`,
+    `- Commit: \`${report.provenance.repository.head_sha ?? "unavailable"}\``,
+    `- Branch: \`${report.provenance.repository.branch ?? "detached or unavailable"}\``,
+    `- Working tree: ${report.provenance.repository.dirty ? "dirty" : "clean"}`,
+    `- Change-set source: ${report.provenance.repository.changed_files_source}`,
+    `- Contract digest: \`${report.provenance.digests.contract_sha256}\``,
+    `- Policy digest: \`${report.provenance.digests.policy_sha256}\``,
+    `- Plan digest: \`${report.provenance.digests.plan_sha256}\``,
+    `- Change-set digest: \`${report.provenance.digests.change_set_sha256}\``,
+    `- Attestation: ${report.attestation ? `signed by **${report.attestation.signer_id}** at ${report.attestation.signed_at}` : "none"}`,
+    ...(report.provenance.target.preview_origin
+      ? [`- Preview origin: ${report.provenance.target.preview_origin}`]
+      : []),
     "",
-    "## Verification",
+    "## Behavior claims",
     "",
   ];
-  for (const evidence of report.evidence)
+  for (const claim of report.evidence.filter((item) => item.category === "claim"))
+    lines.push(
+      `- ${statusIcon(claim.status)} **${claim.id.replace(/^claim:/, "")}** — ${claim.summary}`,
+    );
+  lines.push("", "## Verification", "");
+  for (const evidence of report.evidence.filter((item) => item.category !== "claim"))
     lines.push(`- ${statusIcon(evidence.status)} **${evidence.id}** — ${evidence.summary}`);
   lines.push("", "## Evidence selection", "");
   for (const [id, reasons] of Object.entries(report.plan.selection_reasons))

@@ -5,8 +5,12 @@ import {
   verificationPlanSchema,
 } from "../packages/core/src/index.js";
 import { runSelectedVerifiers } from "../packages/verifiers/src/index.js";
+import { approvalDigest } from "../packages/core/src/provenance.js";
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+});
 
 describe("typed verifier adapters", () => {
   it("rejects duplicate evidence IDs and dangling surface requirements", () => {
@@ -45,6 +49,7 @@ describe("typed verifier adapters", () => {
   });
 
   it("executes no-shell CLI missions and structured HTTP contracts", async () => {
+    vi.stubEnv("TRUST_TEST_SECRET", "must-not-be-inherited");
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => Response.json({ ok: true }, { status: 200 })),
@@ -63,8 +68,15 @@ describe("typed verifier adapters", () => {
             {
               id: "version",
               executable: process.execPath,
-              args: ["-e", "process.stdout.write('fixture 1.0')"],
-              expect: { exit_code: 0, stdout_contains: ["fixture 1.0"], stderr_contains: [] },
+              args: [
+                "-e",
+                "process.stdout.write(`fixture 1.0:${process.env.TRUST_TEST_SECRET ?? 'missing'}`)",
+              ],
+              expect: {
+                exit_code: 0,
+                stdout_contains: ["fixture 1.0:missing"],
+                stderr_contains: [],
+              },
             },
           ],
         },
@@ -85,12 +97,28 @@ describe("typed verifier adapters", () => {
         },
       ],
     });
-    const contract = changeContractSchema.parse({
+    const contractInput = {
       version: 1,
       id: "fixture",
       intent: "Verify fixture",
-      expected_behaviors: ["fixture remains healthy"],
-      approval: { status: "approved" },
+      expected_behaviors: [
+        { id: "fixture-healthy", description: "fixture remains healthy", evidence: ["requests"] },
+      ],
+      affected_surfaces: ["fixture"],
+      required_evidence: ["requests"],
+      approval: {
+        status: "approved",
+        approved_by: "test-owner",
+        approved_at: "2026-08-25T04:00:00.000Z",
+        method: "local",
+      },
+    } as const;
+    const contract = changeContractSchema.parse({
+      ...contractInput,
+      approval: {
+        ...contractInput.approval,
+        content_sha256: approvalDigest(contractInput),
+      },
     });
     const plan = verificationPlanSchema.parse({
       version: 1,
@@ -119,5 +147,6 @@ describe("typed verifier adapters", () => {
         status: "verified",
       }),
     ]);
+    expect(result.evidence.find((item) => item.id === "requests:health")?.stdout).toBeUndefined();
   });
 });

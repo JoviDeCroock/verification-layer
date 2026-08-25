@@ -61,12 +61,23 @@ const contract: ChangeContract = {
   version: 1,
   id: "login",
   intent: "Change login",
-  expected_behaviors: ["non-admins cannot enter"],
+  expected_behaviors: [
+    {
+      id: "authorization",
+      description: "non-admins cannot enter",
+      evidence: ["preview-qa"],
+    },
+  ],
   affected_surfaces: [],
   risks: ["authorization"],
   required_evidence: ["preview-qa"],
   excluded: [],
-  approval: { status: "approved" },
+  approval: {
+    status: "approved",
+    approved_by: "test-owner",
+    approved_at: "2026-08-25T04:00:00.000Z",
+    method: "local",
+  },
 };
 
 describe("verification graph", () => {

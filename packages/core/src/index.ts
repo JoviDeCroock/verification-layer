@@ -67,6 +67,34 @@ const verifierBaseSchema = z.object({
   timeout_ms: z.number().int().positive().default(120_000),
 });
 
+const authorityKeySchema = z
+  .object({
+    id: z.string().min(1),
+    public_key_base64: z.string().min(1),
+    not_before: z.string().datetime().optional(),
+    not_after: z.string().datetime().optional(),
+    revoked_at: z.string().datetime().optional(),
+    revocation_reason: z.string().min(1).optional(),
+  })
+  .superRefine((key, context) => {
+    if (
+      key.not_before &&
+      key.not_after &&
+      new Date(key.not_before).getTime() >= new Date(key.not_after).getTime()
+    )
+      context.addIssue({
+        code: "custom",
+        message: "Authority key not_before must predate not_after.",
+        path: ["not_after"],
+      });
+    if (Boolean(key.revoked_at) !== Boolean(key.revocation_reason))
+      context.addIssue({
+        code: "custom",
+        message: "Authority key revocation requires both revoked_at and revocation_reason.",
+        path: [key.revoked_at ? "revocation_reason" : "revoked_at"],
+      });
+  });
+
 const processExpectationSchema = z.object({
   exit_code: z.number().int().default(0),
   stdout_contains: stringList,
@@ -109,6 +137,7 @@ export const verifierSchema = z.discriminatedUnion("kind", [
   verifierBaseSchema.extend({
     kind: z.literal("requests"),
     base_url: z.string().url().optional(),
+    capture_body: z.boolean().default(false),
     requests: z
       .array(
         z.object({
@@ -160,10 +189,27 @@ export const trustConfigSchema = z
     repository: z.object({
       name: z.string().min(1),
       root: z.string().default("."),
+      allow_explicit_changed_files: z.boolean().optional(),
     }),
     knowledge: z.object({
       sources: stringList,
     }),
+    authority: z
+      .object({
+        allow_local_approvals: z.boolean().optional(),
+        require_signed_reports: z.boolean().optional(),
+        trusted_approvers: z.array(authorityKeySchema).optional(),
+        trusted_reporters: z.array(authorityKeySchema).optional(),
+      })
+      .optional(),
+    execution: z
+      .object({
+        allow_shell_commands: z.boolean().optional(),
+        inherit_environment: z.boolean().optional(),
+        max_attempts: z.number().int().min(1).max(5).default(1),
+        retry_backoff_ms: z.number().int().min(0).max(30_000).default(250),
+      })
+      .optional(),
     checks: z.array(checkSchema).default([]),
     invariants: z.array(invariantSchema).default([]),
     surfaces: z.array(surfaceSchema).default([]),
@@ -181,6 +227,19 @@ export const trustConfigSchema = z
       ...config.invariants.map((item) => item.id),
       ...config.verifiers.map((item) => item.id),
     ];
+    for (const [field, keys] of [
+      ["trusted_approvers", config.authority?.trusted_approvers ?? []],
+      ["trusted_reporters", config.authority?.trusted_reporters ?? []],
+    ] as const) {
+      const ids = keys.map((key) => key.id);
+      for (const id of new Set(ids))
+        if (ids.filter((candidate) => candidate === id).length > 1)
+          context.addIssue({
+            code: "custom",
+            message: `Authority key ID ${JSON.stringify(id)} is declared more than once in ${field}.`,
+            path: ["authority", field],
+          });
+    }
     for (const id of new Set(evidenceIds)) {
       if (evidenceIds.filter((candidate) => candidate === id).length > 1)
         context.addIssue({
@@ -217,22 +276,97 @@ export const trustConfigSchema = z
           });
       }
     }
+    const visiting = new Set<string>();
+    const visited = new Set<string>();
+    const visit = (id: string, trail: string[]): void => {
+      if (visiting.has(id)) {
+        const cycle = [...trail.slice(trail.indexOf(id)), id];
+        context.addIssue({
+          code: "custom",
+          message: `Surface dependency cycle: ${cycle.join(" -> ")}.`,
+          path: ["surfaces"],
+        });
+        return;
+      }
+      if (visited.has(id)) return;
+      visiting.add(id);
+      const surface = config.surfaces.find((item) => item.id === id);
+      for (const dependency of surface?.depends_on ?? []) visit(dependency, [...trail, id]);
+      visiting.delete(id);
+      visited.add(id);
+    };
+    for (const id of surfaceIds) visit(id, []);
   });
+
+export const expectedBehaviorSchema = z.object({
+  id: z
+    .string()
+    .min(1)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Behavior IDs must use lowercase kebab-case."),
+  description: z.string().min(1),
+  evidence: z.array(z.string().min(1)).min(1),
+});
 
 export const changeContractSchema = z.object({
   version: z.literal(1).default(1),
   id: z.string().min(1),
   intent: z.string().min(1),
-  expected_behaviors: z.array(z.string()).min(1),
+  expected_behaviors: z.array(expectedBehaviorSchema).min(1),
   affected_surfaces: stringList,
   risks: stringList,
   required_evidence: stringList,
   excluded: z.array(z.object({ item: z.string(), reason: z.string() })).default([]),
-  approval: z.object({
-    status: z.enum(["draft", "approved"]),
-    approved_by: z.string().optional(),
-    approved_at: z.string().datetime().optional(),
-  }),
+  approval: z
+    .object({
+      status: z.enum(["draft", "approved"]),
+      approved_by: z.string().min(1).optional(),
+      approved_at: z.string().datetime().optional(),
+      content_sha256: z.string().length(64).optional(),
+      method: z.enum(["local", "ed25519"]).optional(),
+      key_id: z.string().min(1).optional(),
+      signature: z.string().min(1).optional(),
+    })
+    .superRefine((approval, context) => {
+      if (approval.status !== "approved") return;
+      if (!approval.approved_by)
+        context.addIssue({
+          code: "custom",
+          message: "Approved contracts require approved_by.",
+          path: ["approved_by"],
+        });
+      if (!approval.approved_at)
+        context.addIssue({
+          code: "custom",
+          message: "Approved contracts require approved_at.",
+          path: ["approved_at"],
+        });
+      if (!approval.content_sha256)
+        context.addIssue({
+          code: "custom",
+          message: "Approved contracts require content_sha256.",
+          path: ["content_sha256"],
+        });
+      if (!approval.method)
+        context.addIssue({
+          code: "custom",
+          message: "Approved contracts require an approval method.",
+          path: ["method"],
+        });
+      if (approval.method === "ed25519") {
+        if (!approval.key_id)
+          context.addIssue({
+            code: "custom",
+            message: "Signed approvals require key_id.",
+            path: ["key_id"],
+          });
+        if (!approval.signature)
+          context.addIssue({
+            code: "custom",
+            message: "Signed approvals require signature.",
+            path: ["signature"],
+          });
+      }
+    }),
 });
 
 export const missionSchema = z.object({
@@ -248,6 +382,7 @@ export const evidenceSchema = z.object({
   id: z.string(),
   category: z.enum([
     "plan",
+    "claim",
     "static",
     "test",
     "e2e",
@@ -260,6 +395,7 @@ export const evidenceSchema = z.object({
     "device",
   ]),
   status: evidenceStatusSchema,
+  source_id: z.string().optional(),
   summary: z.string(),
   command: z.string().optional(),
   duration_ms: z.number().nonnegative().optional(),
@@ -294,6 +430,30 @@ export const trustReportSchema = z.object({
     additions: z.number().nonnegative().optional(),
     deletions: z.number().nonnegative().optional(),
   }),
+  provenance: z.object({
+    repository: z.object({
+      head_sha: z.string().nullable(),
+      branch: z.string().nullable(),
+      dirty: z.boolean(),
+      changed_files_source: z.enum(["git", "explicit"]),
+      base_sha: z.string().nullable(),
+    }),
+    digests: z.object({
+      contract_sha256: z.string().length(64),
+      policy_sha256: z.string().length(64),
+      plan_sha256: z.string().length(64),
+      change_set_sha256: z.string().length(64),
+    }),
+    runtime: z.object({
+      trust_version: z.string(),
+      node: z.string(),
+      platform: z.string(),
+      arch: z.string(),
+    }),
+    target: z.object({
+      preview_origin: z.string().url().optional(),
+    }),
+  }),
   evidence: z.array(evidenceSchema),
   qa_missions: z.array(missionSchema),
   unknowns: z.array(z.string()),
@@ -311,7 +471,64 @@ export const trustReportSchema = z.object({
     }),
   ),
   verdict: z.enum(["trusted", "not_trusted", "insufficient_evidence"]),
+  attestation: z
+    .object({
+      algorithm: z.literal("ed25519"),
+      signer_id: z.string().min(1),
+      signed_at: z.string().datetime(),
+      report_sha256: z.string().length(64),
+      signature: z.string().min(1),
+    })
+    .optional(),
 });
+
+export const doctorResultSchema = z.object({
+  version: z.literal(1),
+  repository: z.string().min(1),
+  ready: z.boolean(),
+  counts: z.object({
+    checks: z.number().int().nonnegative(),
+    invariants: z.number().int().nonnegative(),
+    verifiers: z.number().int().nonnegative(),
+    surfaces: z.number().int().nonnegative(),
+    active_approvers: z.number().int().nonnegative(),
+    active_reporters: z.number().int().nonnegative(),
+  }),
+  verifiers: z.array(z.object({ id: z.string().min(1), kind: z.string().min(1) })),
+  warnings: z.array(z.string()),
+  problems: z.array(z.string()),
+});
+
+export const reportAttestationRequestSchema = z
+  .object({
+    version: z.literal(1),
+    algorithm: z.literal("ed25519"),
+    signer_id: z.string().min(1),
+    signed_at: z.string().datetime(),
+    report_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+    signing_digest: z.string().regex(/^[a-f0-9]{64}$/),
+  })
+  .strict();
+
+export const auditEntryPayloadSchema = z
+  .object({
+    version: z.literal(1),
+    sequence: z.number().int().positive(),
+    event: z.literal("report-attested"),
+    recorded_at: z.string().datetime(),
+    previous_entry_sha256: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .nullable(),
+    policy_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+    report_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+    report: trustReportSchema,
+  })
+  .strict();
+
+export const auditEntrySchema = auditEntryPayloadSchema
+  .extend({ entry_sha256: z.string().regex(/^[a-f0-9]{64}$/) })
+  .strict();
 
 export const incidentSchema = z.object({
   version: z.literal(1).default(1),
@@ -325,8 +542,12 @@ export const incidentSchema = z.object({
 export type TrustConfig = z.infer<typeof trustConfigSchema>;
 export type Verifier = z.infer<typeof verifierSchema>;
 export type ChangeContract = z.infer<typeof changeContractSchema>;
+export type ExpectedBehavior = z.infer<typeof expectedBehaviorSchema>;
 export type Mission = z.infer<typeof missionSchema>;
 export type Evidence = z.infer<typeof evidenceSchema>;
+export type ReportAttestationRequest = z.infer<typeof reportAttestationRequestSchema>;
+export type AuditEntryPayload = z.infer<typeof auditEntryPayloadSchema>;
+export type AuditEntry = z.infer<typeof auditEntrySchema>;
 export type VerificationPlan = z.infer<typeof verificationPlanSchema>;
 export type TrustReport = z.infer<typeof trustReportSchema>;
 export type Incident = z.infer<typeof incidentSchema>;
@@ -334,6 +555,8 @@ export type Incident = z.infer<typeof incidentSchema>;
 export function computeVerdict(evidence: Evidence[]): TrustReport["verdict"] {
   if (evidence.some((item) => item.status === "failed")) return "not_trusted";
   if (evidence.some((item) => item.status === "not_verified")) return "insufficient_evidence";
+  if (!evidence.some((item) => item.category === "claim" && item.status === "verified"))
+    return "insufficient_evidence";
   return "trusted";
 }
 

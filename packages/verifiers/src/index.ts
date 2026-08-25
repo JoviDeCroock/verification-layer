@@ -9,7 +9,7 @@ import type {
   VerificationPlan,
 } from "../../core/src/index.js";
 import { generateMissions, runQa } from "../../qa/src/index.js";
-import { runProcess, type CommandResult } from "../../runner/src/index.js";
+import { runProcessWithRetries, type CommandResult } from "../../runner/src/index.js";
 
 export interface VerifierRunResult {
   evidence: Evidence[];
@@ -21,6 +21,8 @@ type ProcessExpectation = ProcessVerifier["expect"];
 
 function processPassed(result: CommandResult, expect: ProcessExpectation): boolean {
   return (
+    !result.aborted &&
+    !result.timedOut &&
     result.exitCode === expect.exit_code &&
     expect.stdout_contains.every((value) => result.stdout.includes(value)) &&
     expect.stderr_contains.every((value) => result.stderr.includes(value))
@@ -29,6 +31,8 @@ function processPassed(result: CommandResult, expect: ProcessExpectation): boole
 
 function processFailureReason(result: CommandResult, expect: ProcessExpectation): string {
   const reasons: string[] = [];
+  if (result.aborted) reasons.push("cancelled");
+  if (result.timedOut) reasons.push("timed out");
   if (result.exitCode !== expect.exit_code)
     reasons.push(`exit ${result.exitCode}, expected ${expect.exit_code}`);
   for (const value of expect.stdout_contains)
@@ -42,61 +46,92 @@ async function runPlaywrightVerifier(
   verifier: Extract<Verifier, { kind: "playwright" }>,
   repositoryRoot: string,
   previewUrl?: string,
+  inheritEnv = false,
+  signal?: AbortSignal,
+  maxAttempts = 1,
+  retryBackoffMs = 250,
 ): Promise<Evidence[]> {
-  const result = await runProcess({
-    executable: verifier.executable,
-    args: verifier.args,
-    cwd: path.resolve(repositoryRoot, verifier.cwd),
-    timeoutMs: verifier.timeout_ms,
-    env: {
-      ...verifier.env,
-      ...(previewUrl ? { TRUST_PREVIEW_URL: previewUrl } : {}),
-    },
-  });
-  const passed = processPassed(result, verifier.expect);
-  return [
+  const results = await runProcessWithRetries(
     {
-      id: verifier.id,
+      executable: verifier.executable,
+      args: verifier.args,
+      cwd: path.resolve(repositoryRoot, verifier.cwd),
+      timeoutMs: verifier.timeout_ms,
+      env: {
+        ...verifier.env,
+        ...(previewUrl ? { TRUST_PREVIEW_URL: previewUrl } : {}),
+      },
+      inheritEnv,
+      ...(signal ? { signal } : {}),
+    },
+    maxAttempts,
+    retryBackoffMs,
+    (result) => processPassed(result, verifier.expect),
+  );
+  return results.map((result, index) => {
+    const passed = processPassed(result, verifier.expect);
+    return {
+      id: index === results.length - 1 ? verifier.id : `${verifier.id}:attempt-${index + 1}`,
+      source_id: verifier.id,
       category: "e2e",
       status: passed ? "verified" : "failed",
       summary: passed
-        ? `${verifier.label ?? verifier.id} passed.`
-        : `${verifier.label ?? verifier.id} failed: ${processFailureReason(result, verifier.expect)}`,
+        ? `${verifier.label ?? verifier.id} passed${results.length > 1 ? ` on attempt ${index + 1}` : ""}.`
+        : `${verifier.label ?? verifier.id} failed on attempt ${index + 1}: ${processFailureReason(result, verifier.expect)}`,
       command: [verifier.executable, ...verifier.args].join(" "),
       duration_ms: result.durationMs,
       stdout: result.stdout.slice(-12_000),
       stderr: result.stderr.slice(-12_000),
-    },
-  ];
+      measurements: { attempt: index + 1, max_attempts: results.length },
+    } satisfies Evidence;
+  });
 }
 
 async function runCliVerifier(
   verifier: Extract<Verifier, { kind: "cli" }>,
   repositoryRoot: string,
+  inheritEnv = false,
+  signal?: AbortSignal,
+  maxAttempts = 1,
+  retryBackoffMs = 250,
 ): Promise<Evidence[]> {
   const evidence: Evidence[] = [];
   for (const mission of verifier.missions) {
-    const result = await runProcess({
-      executable: mission.executable,
-      args: mission.args,
-      cwd: path.resolve(repositoryRoot, mission.cwd),
-      timeoutMs: verifier.timeout_ms,
-      env: mission.env,
-      ...(mission.stdin === undefined ? {} : { stdin: mission.stdin }),
-    });
-    const passed = processPassed(result, mission.expect);
-    evidence.push({
-      id: `${verifier.id}:${mission.id}`,
-      category: "cli",
-      status: passed ? "verified" : "failed",
-      summary: passed
-        ? `CLI mission ${mission.id} passed.`
-        : `CLI mission ${mission.id} failed: ${processFailureReason(result, mission.expect)}`,
-      command: [mission.executable, ...mission.args].join(" "),
-      duration_ms: result.durationMs,
-      stdout: result.stdout.slice(-12_000),
-      stderr: result.stderr.slice(-12_000),
-    });
+    const results = await runProcessWithRetries(
+      {
+        executable: mission.executable,
+        args: mission.args,
+        cwd: path.resolve(repositoryRoot, mission.cwd),
+        timeoutMs: verifier.timeout_ms,
+        env: mission.env,
+        ...(mission.stdin === undefined ? {} : { stdin: mission.stdin }),
+        inheritEnv,
+        ...(signal ? { signal } : {}),
+      },
+      maxAttempts,
+      retryBackoffMs,
+      (result) => processPassed(result, mission.expect),
+    );
+    for (const [index, result] of results.entries()) {
+      const passed = processPassed(result, mission.expect);
+      evidence.push({
+        id:
+          index === results.length - 1
+            ? `${verifier.id}:${mission.id}`
+            : `${verifier.id}:${mission.id}:attempt-${index + 1}`,
+        source_id: verifier.id,
+        category: "cli",
+        status: passed ? "verified" : "failed",
+        summary: passed
+          ? `CLI mission ${mission.id} passed${results.length > 1 ? ` on attempt ${index + 1}` : ""}.`
+          : `CLI mission ${mission.id} failed on attempt ${index + 1}: ${processFailureReason(result, mission.expect)}`,
+        command: [mission.executable, ...mission.args].join(" "),
+        duration_ms: result.durationMs,
+        stdout: result.stdout.slice(-12_000),
+        stderr: result.stderr.slice(-12_000),
+        measurements: { attempt: index + 1, max_attempts: results.length },
+      });
+    }
   }
   return evidence;
 }
@@ -140,12 +175,14 @@ async function readBoundedBody(response: Response, maxBytes = 100_000): Promise<
 async function runRequestVerifier(
   verifier: Extract<Verifier, { kind: "requests" }>,
   previewUrl?: string,
+  signal?: AbortSignal,
 ): Promise<Evidence[]> {
   const baseUrl = previewUrl ?? verifier.base_url;
   if (!baseUrl) {
     return [
       {
         id: verifier.id,
+        source_id: verifier.id,
         category: "request",
         status: "not_verified",
         summary: `${verifier.label ?? verifier.id} has no preview or base URL.`,
@@ -161,7 +198,9 @@ async function runRequestVerifier(
         method: mission.method,
         headers: mission.headers,
         ...(mission.body === undefined ? {} : { body: JSON.stringify(mission.body) }),
-        signal: AbortSignal.timeout(verifier.timeout_ms),
+        signal: signal
+          ? AbortSignal.any([signal, AbortSignal.timeout(verifier.timeout_ms)])
+          : AbortSignal.timeout(verifier.timeout_ms),
       });
       const body = await readBoundedBody(response);
       let passed = response.status === mission.expect.status;
@@ -196,13 +235,14 @@ async function runRequestVerifier(
       }
       evidence.push({
         id: `${verifier.id}:${mission.id}`,
+        source_id: verifier.id,
         category: "request",
         status: passed ? "verified" : "failed",
         summary: passed
           ? `${mission.method} ${mission.path} satisfied its response contract.`
           : `${mission.method} ${mission.path} failed: ${reasons.join("; ")}`,
         duration_ms: Date.now() - started,
-        stdout: body.slice(-12_000),
+        ...(verifier.capture_body ? { stdout: body.slice(-12_000) } : {}),
         measurements: {
           status: response.status,
           response_bytes: Buffer.byteLength(body),
@@ -212,6 +252,7 @@ async function runRequestVerifier(
     } catch (error) {
       evidence.push({
         id: `${verifier.id}:${mission.id}`,
+        source_id: verifier.id,
         category: "request",
         status: "failed",
         summary: `${mission.method} ${mission.path} could not be verified.`,
@@ -247,6 +288,7 @@ async function runAgentVerifier(
   repositoryRoot: string,
   outputDirectory: string,
   previewUrl?: string,
+  signal?: AbortSignal,
 ): Promise<VerifierRunResult> {
   const missions = generateMissions(contract);
   if (verifier.kind === "agent-browser") {
@@ -260,6 +302,8 @@ async function runAgentVerifier(
         missions: missions.filter((mission) => mission.viewport === "desktop"),
         evidencePrefix: `agent-browser:${verifier.id}`,
         category: "qa",
+        sourceId: verifier.id,
+        ...(signal ? { signal } : {}),
       },
     );
   }
@@ -276,9 +320,11 @@ async function runAgentVerifier(
         missions,
         evidencePrefix: `agent-device:${verifier.id}:${device.name}`,
         category: "device",
+        sourceId: verifier.id,
         viewport: { width: device.width, height: device.height },
         ...(device.user_agent ? { userAgent: device.user_agent } : {}),
         hasTouch: device.has_touch,
+        ...(signal ? { signal } : {}),
       },
     );
     evidence.push(...result.evidence);
@@ -293,17 +339,39 @@ export async function runSelectedVerifiers(
   repositoryRoot: string,
   outputDirectory: string,
   previewUrl?: string,
+  signal?: AbortSignal,
 ): Promise<VerifierRunResult> {
   const evidence: Evidence[] = [];
   const missions: Mission[] = [];
   for (const id of plan.selected_verifiers) {
+    signal?.throwIfAborted();
     const verifier = config.verifiers.find((item) => item.id === id);
     if (!verifier) continue;
     if (verifier.kind === "playwright")
-      evidence.push(...(await runPlaywrightVerifier(verifier, repositoryRoot, previewUrl)));
-    if (verifier.kind === "cli") evidence.push(...(await runCliVerifier(verifier, repositoryRoot)));
+      evidence.push(
+        ...(await runPlaywrightVerifier(
+          verifier,
+          repositoryRoot,
+          previewUrl,
+          config.execution?.inherit_environment === true,
+          signal,
+          config.execution?.max_attempts,
+          config.execution?.retry_backoff_ms,
+        )),
+      );
+    if (verifier.kind === "cli")
+      evidence.push(
+        ...(await runCliVerifier(
+          verifier,
+          repositoryRoot,
+          config.execution?.inherit_environment === true,
+          signal,
+          config.execution?.max_attempts,
+          config.execution?.retry_backoff_ms,
+        )),
+      );
     if (verifier.kind === "requests")
-      evidence.push(...(await runRequestVerifier(verifier, previewUrl)));
+      evidence.push(...(await runRequestVerifier(verifier, previewUrl, signal)));
     if (verifier.kind === "agent-browser" || verifier.kind === "agent-device") {
       const result = await runAgentVerifier(
         config,
@@ -312,6 +380,7 @@ export async function runSelectedVerifiers(
         repositoryRoot,
         outputDirectory,
         previewUrl,
+        signal,
       );
       evidence.push(...result.evidence);
       missions.push(...result.missions);

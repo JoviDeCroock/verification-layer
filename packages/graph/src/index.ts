@@ -9,6 +9,18 @@ function addReason(reasons: Record<string, string[]>, id: string, reason: string
   (reasons[id] ??= []).push(reason);
 }
 
+function canonicalTag(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function hasRisk(tags: string[], risks: string[]): string | undefined {
+  const normalizedTags = new Set(tags.map(canonicalTag));
+  return risks.find((risk) => normalizedTags.has(canonicalTag(risk)));
+}
+
 export function createVerificationPlan(
   config: TrustConfig,
   contract: ChangeContract,
@@ -28,6 +40,20 @@ export function createVerificationPlan(
     }
   }
 
+  const queue = [...affected];
+  for (let index = 0; index < queue.length; index++) {
+    const surfaceId = queue[index]!;
+    const surface = config.surfaces.find((item) => item.id === surfaceId);
+    if (!surface) continue;
+    for (const dependency of surface.depends_on) {
+      if (!affected.has(dependency)) {
+        affected.add(dependency);
+        queue.push(dependency);
+      }
+      addReason(reasons, `surface:${dependency}`, `dependency of surface ${surfaceId}`);
+    }
+  }
+
   const selectedChecks = new Set<string>();
   const selectedInvariants = new Set<string>();
   const selectedVerifiers = new Set<string>();
@@ -43,19 +69,6 @@ export function createVerificationPlan(
         selectedVerifiers.add(requirement);
       addReason(reasons, requirement, `required by surface ${surfaceId}`);
     }
-    for (const dependency of surface.depends_on) {
-      const dependencySurface = config.surfaces.find((item) => item.id === dependency);
-      if (!dependencySurface) continue;
-      for (const requirement of dependencySurface.requires) {
-        if (config.checks.some((check) => check.id === requirement))
-          selectedChecks.add(requirement);
-        if (config.invariants.some((invariant) => invariant.id === requirement))
-          selectedInvariants.add(requirement);
-        if (config.verifiers.some((verifier) => verifier.id === requirement))
-          selectedVerifiers.add(requirement);
-        addReason(reasons, requirement, `required by dependency ${surfaceId} -> ${dependency}`);
-      }
-    }
   }
 
   for (const check of config.checks) {
@@ -67,13 +80,10 @@ export function createVerificationPlan(
         check.required ? "repository-required check" : "changed files matched check scope",
       );
     }
-    if (contract.risks.some((risk) => check.tags.includes(risk))) {
+    const matchedRisk = hasRisk(check.tags, contract.risks);
+    if (matchedRisk) {
       selectedChecks.add(check.id);
-      addReason(
-        reasons,
-        check.id,
-        `selected for contract risk ${contract.risks.find((risk) => check.tags.includes(risk))}`,
-      );
+      addReason(reasons, check.id, `selected for contract risk ${matchedRisk}`);
     }
   }
 
@@ -93,7 +103,7 @@ export function createVerificationPlan(
         verifier.required ? "repository-required verifier" : "changed files matched verifier scope",
       );
     }
-    const matchedRisk = contract.risks.find((risk) => verifier.tags.includes(risk));
+    const matchedRisk = hasRisk(verifier.tags, contract.risks);
     if (matchedRisk) {
       selectedVerifiers.add(verifier.id);
       addReason(reasons, verifier.id, `selected for contract risk ${matchedRisk}`);

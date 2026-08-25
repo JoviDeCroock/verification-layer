@@ -230,8 +230,24 @@ export async function discoverRepository(rootInput: string): Promise<DiscoveryRe
 
   const config: TrustConfig = {
     version: 1,
-    repository: { name: String(packageJson.name ?? path.basename(root)), root: "." },
+    repository: {
+      name: String(packageJson.name ?? path.basename(root)),
+      root: ".",
+      allow_explicit_changed_files: false,
+    },
     knowledge: { sources: knowledge },
+    authority: {
+      allow_local_approvals: false,
+      require_signed_reports: true,
+      trusted_approvers: [],
+      trusted_reporters: [],
+    },
+    execution: {
+      allow_shell_commands: false,
+      inherit_environment: false,
+      max_attempts: 1,
+      retry_backoff_ms: 250,
+    },
     checks,
     invariants: [],
     surfaces,
