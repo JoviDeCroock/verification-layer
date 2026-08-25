@@ -153,59 +153,140 @@
       "default": [],
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "label": {
-            "type": "string"
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "static",
-              "test",
-              "e2e",
-              "security",
-              "architecture",
-              "custom"
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "static",
+                  "test",
+                  "e2e",
+                  "security",
+                  "architecture",
+                  "custom"
+                ]
+              },
+              "scope": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "tags": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "required": {
+                "default": false,
+                "type": "boolean"
+              },
+              "timeout_ms": {
+                "default": 120000,
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "command": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "command"
             ]
           },
-          "command": {
-            "type": "string",
-            "minLength": 1
-          },
-          "scope": {
-            "default": [],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "tags": {
-            "default": [],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "required": {
-            "default": false,
-            "type": "boolean"
-          },
-          "timeout_ms": {
-            "default": 120000,
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 9007199254740991
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "static",
+                  "test",
+                  "e2e",
+                  "security",
+                  "architecture",
+                  "custom"
+                ]
+              },
+              "scope": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "tags": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "required": {
+                "default": false,
+                "type": "boolean"
+              },
+              "timeout_ms": {
+                "default": 120000,
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "executable": {
+                "type": "string",
+                "minLength": 1
+              },
+              "args": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "cwd": {
+                "default": ".",
+                "type": "string"
+              },
+              "env": {
+                "default": {},
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "executable"
+            ]
           }
-        },
-        "required": [
-          "id",
-          "kind",
-          "command"
         ]
       }
     },

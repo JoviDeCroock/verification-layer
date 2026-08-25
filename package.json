@@ -26,6 +26,7 @@
     "dist/packages",
     "docs",
     "evals",
+    "examples/demo-app/.trust/runs/proof-summary.json",
     "schemas",
     "README.md"
   ],

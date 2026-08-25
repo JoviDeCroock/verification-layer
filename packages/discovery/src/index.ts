@@ -41,10 +41,22 @@ async function files(root: string, patterns: string[]): Promise<string[]> {
 function scriptCheck(
   id: string,
   kind: TrustConfig["checks"][number]["kind"],
-  command: string,
+  packageManager: string,
+  script: string,
   scope: string[] = ["**/*"],
 ): TrustConfig["checks"][number] {
-  return { id, kind, command, scope, tags: [], required: false, timeout_ms: 120_000 };
+  return {
+    id,
+    kind,
+    executable: packageManager,
+    args: ["run", script],
+    cwd: ".",
+    env: {},
+    scope,
+    tags: [],
+    required: false,
+    timeout_ms: 120_000,
+  };
 }
 
 export async function discoverRepository(rootInput: string): Promise<DiscoveryReport> {
@@ -108,9 +120,9 @@ export async function discoverRepository(rootInput: string): Promise<DiscoveryRe
   ) => {
     const script = candidates.find((candidate) => scripts[candidate]);
     if (!script || !packageManager) return;
-    const command = `${packageManager} ${packageManager === "npm" ? "run " : ""}${script}`;
-    checks.push(scriptCheck(id, kind, command));
-    found.push({ label: `${id} command`, detail: command });
+    const args = ["run", script];
+    checks.push(scriptCheck(id, kind, packageManager, script));
+    found.push({ label: `${id} command`, detail: [packageManager, ...args].join(" ") });
   };
   addScript("typecheck", "static", ["typecheck", "types", "check:types"]);
   addScript("lint", "static", ["lint"]);

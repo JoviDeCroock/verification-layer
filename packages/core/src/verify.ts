@@ -293,6 +293,9 @@ export async function verifyChange(input: VerifyInput): Promise<TrustReport> {
     ],
     unknowns,
     learning_proposals: [],
+    assurance: {
+      level: reportSignerReady ? "attested" : changedFilesSource === "git" ? "local" : "trial",
+    },
     verdict: computeVerdict(safeEvidence),
   };
   reportBase.learning_proposals = proposeLearnings(reportBase);

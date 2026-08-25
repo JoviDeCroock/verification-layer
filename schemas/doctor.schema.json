@@ -10,6 +10,33 @@
       "type": "string",
       "minLength": 1
     },
+    "required_level": {
+      "type": "string",
+      "enum": [
+        "trial",
+        "local",
+        "attested"
+      ]
+    },
+    "readiness": {
+      "type": "object",
+      "properties": {
+        "trial": {
+          "type": "boolean"
+        },
+        "local": {
+          "type": "boolean"
+        },
+        "attested": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "trial",
+        "local",
+        "attested"
+      ]
+    },
     "ready": {
       "type": "boolean"
     },
@@ -92,6 +119,8 @@
   "required": [
     "version",
     "repository",
+    "required_level",
+    "readiness",
     "ready",
     "counts",
     "verifiers",

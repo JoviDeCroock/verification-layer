@@ -1,0 +1,234 @@
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+import { loadTrustConfig, loadTrustReport } from "../packages/core/src/files.js";
+import { runProcess } from "../packages/runner/src/index.js";
+
+const cli = path.resolve("packages/cli/src/index.ts");
+
+async function trust(args: string[]) {
+  return runProcess({
+    executable: process.execPath,
+    args: ["--import", "tsx", cli, ...args],
+    cwd: process.cwd(),
+    timeoutMs: 30_000,
+  });
+}
+
+async function git(repository: string, args: string[]) {
+  const result = await runProcess({
+    executable: "git",
+    args,
+    cwd: repository,
+    timeoutMs: 10_000,
+    inheritEnv: false,
+  });
+  if (result.exitCode !== 0) throw new Error(result.stderr);
+}
+
+describe("ridiculously easy onboarding", () => {
+  it("goes from one intent sentence to a local verdict and GitHub enforcement", async () => {
+    const repository = await mkdtemp(path.join(os.tmpdir(), "trust-start-"));
+    try {
+      await writeFile(
+        path.join(repository, "package.json"),
+        `${JSON.stringify({ name: "starter", scripts: { test: "node --test" } }, null, 2)}\n`,
+        "utf8",
+      );
+      await writeFile(path.join(repository, "feature.js"), "export const enabled = false;\n");
+      await git(repository, ["init", "--initial-branch=main"]);
+      await git(repository, ["config", "user.email", "trust@example.invalid"]);
+      await git(repository, ["config", "user.name", "Trust Fixture"]);
+      await git(repository, ["add", "package.json", "feature.js"]);
+      await git(repository, ["commit", "-m", "baseline"]);
+      await writeFile(path.join(repository, "feature.js"), "export const enabled = true;\n");
+
+      const started = await trust([
+        "start",
+        repository,
+        "--intent",
+        "Users can enable the feature safely",
+      ]);
+      expect(started.exitCode, started.stderr).toBe(0);
+      expect(started.stdout).toContain("TRUSTED · LOCAL ASSURANCE");
+      expect(started.stdout).toContain("1/1 behaviors established");
+
+      const config = await loadTrustConfig(path.join(repository, "trust.yaml"));
+      expect(config.checks).toEqual([
+        expect.objectContaining({
+          id: "test",
+          executable: "npm",
+          args: ["run", "test"],
+        }),
+      ]);
+      expect(config.execution?.allow_shell_commands).toBe(false);
+      const report = await loadTrustReport(
+        path.join(repository, ".trust", "runs", "latest", "report.json"),
+      );
+      expect(report).toMatchObject({ verdict: "trusted", assurance: { level: "local" } });
+      expect(report.plan.changed_files).toEqual(["feature.js"]);
+      expect(await readFile(path.join(repository, ".trust", ".gitignore"), "utf8")).toBe(
+        "runs/\nkeys/*.private.pem\n",
+      );
+
+      const repeated = await trust([
+        "start",
+        repository,
+        "--intent",
+        "Users can enable the feature safely",
+      ]);
+      expect(repeated.exitCode, repeated.stderr).toBe(0);
+      expect(repeated.stdout).toContain("TRUSTED · LOCAL ASSURANCE");
+      const repeatedReport = await loadTrustReport(
+        path.join(repository, ".trust", "runs", "latest", "report.json"),
+      );
+      expect(repeatedReport.plan.changed_files).not.toEqual(
+        expect.arrayContaining([expect.stringMatching(/^\.trust\/runs\//)]),
+      );
+      const verifiedReport = await trust([
+        "report:verify",
+        path.join(repository, ".trust", "runs", "latest", "report.json"),
+        "--config",
+        path.join(repository, "trust.yaml"),
+        "--require-trusted",
+      ]);
+      expect(verifiedReport.exitCode, verifiedReport.stdout + verifiedReport.stderr).toBe(0);
+      expect(verifiedReport.stdout).toContain("Report integrity and authority are valid");
+
+      const explained = await trust([
+        "explain",
+        "test",
+        "--report",
+        path.join(repository, ".trust", "runs", "latest", "report.json"),
+      ]);
+      expect(explained.exitCode, explained.stderr).toBe(0);
+      expect(explained.stdout).toContain("TRUST EXPLAIN — test");
+      expect(explained.stdout).toContain("Command: npm run test");
+
+      const localDoctor = await trust([
+        "doctor",
+        "--config",
+        path.join(repository, "trust.yaml"),
+        "--format",
+        "json",
+      ]);
+      expect(localDoctor.exitCode, localDoctor.stderr).toBe(0);
+      expect(JSON.parse(localDoctor.stdout)).toMatchObject({
+        required_level: "local",
+        ready: true,
+        readiness: { trial: true, local: true, attested: false },
+      });
+
+      const enabled = await trust([
+        "enable",
+        "github",
+        "--config",
+        path.join(repository, "trust.yaml"),
+      ]);
+      expect(enabled.exitCode, enabled.stderr).toBe(0);
+      expect(enabled.stdout).toContain("GitHub merge enforcement is ready locally");
+      expect(enabled.stdout).toContain("Trust authority / attest");
+      const workflow = await readFile(
+        path.join(repository, ".github", "workflows", "trust.yml"),
+        "utf8",
+      );
+      expect(workflow).toContain("trust doctor --config trust.yaml");
+      expect(workflow).toContain("--require attested");
+
+      const attestedDoctor = await trust([
+        "doctor",
+        "--config",
+        path.join(repository, "trust.yaml"),
+        "--contract",
+        path.join(repository, ".trust", "contracts", "current.yaml"),
+        "--require",
+        "attested",
+        "--format",
+        "json",
+      ]);
+      expect(attestedDoctor.exitCode, attestedDoctor.stderr).toBe(0);
+      expect(JSON.parse(attestedDoctor.stdout)).toMatchObject({
+        required_level: "attested",
+        ready: true,
+        readiness: { trial: true, local: true, attested: true },
+      });
+
+      const refusedDowngrade = await trust([
+        "start",
+        repository,
+        "--intent",
+        "Users can enable the feature safely",
+      ]);
+      expect(refusedDowngrade.exitCode).toBe(1);
+      expect(refusedDowngrade.stderr).toContain("requires enforced authority");
+    } finally {
+      await rm(repository, { recursive: true, force: true });
+    }
+  });
+
+  it("creates reusable policy on a clean repository without verifying its own artifacts", async () => {
+    const repository = await mkdtemp(path.join(os.tmpdir(), "trust-clean-start-"));
+    try {
+      await writeFile(
+        path.join(repository, "package.json"),
+        `${JSON.stringify({ name: "clean-starter", scripts: { test: "node --test" } }, null, 2)}\n`,
+        "utf8",
+      );
+      await writeFile(path.join(repository, "feature.js"), "export const enabled = false;\n");
+      await git(repository, ["init", "--initial-branch=main"]);
+      await git(repository, ["config", "user.email", "trust@example.invalid"]);
+      await git(repository, ["config", "user.name", "Trust Fixture"]);
+      await git(repository, ["add", "package.json", "feature.js"]);
+      await git(repository, ["commit", "-m", "baseline"]);
+
+      const clean = await trust([
+        "start",
+        repository,
+        "--intent",
+        "Users can enable the feature safely",
+      ]);
+      expect(clean.exitCode, clean.stderr).toBe(0);
+      expect(clean.stdout).toContain("No Git changes are currently available to verify.");
+      expect(await readFile(path.join(repository, "trust.yaml"), "utf8")).toContain(
+        "allow_local_approvals: true",
+      );
+
+      await writeFile(path.join(repository, "feature.js"), "export const enabled = true;\n");
+      const started = await trust([
+        "start",
+        repository,
+        "--intent",
+        "Users can enable the feature safely",
+      ]);
+      expect(started.exitCode, started.stderr).toBe(0);
+      expect(started.stdout).toContain("Using safe local policy");
+      expect(started.stdout).toContain("TRUSTED · LOCAL ASSURANCE");
+    } finally {
+      await rm(repository, { recursive: true, force: true });
+    }
+  });
+
+  it("explains that guided start needs an initialized Git history", async () => {
+    const repository = await mkdtemp(path.join(os.tmpdir(), "trust-no-git-"));
+    try {
+      await writeFile(
+        path.join(repository, "package.json"),
+        `${JSON.stringify({ name: "no-git", scripts: { test: "node --test" } })}\n`,
+        "utf8",
+      );
+      const result = await trust(["start", repository, "--intent", "Users can start safely"]);
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain("requires a Git repository with an initial commit");
+    } finally {
+      await rm(repository, { recursive: true, force: true });
+    }
+  });
+
+  it("renders the bundled proof without repository setup", async () => {
+    const result = await trust(["try"]);
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(result.stdout).toContain("BROKEN · NOT TRUSTED");
+    expect(result.stdout).toContain("FIXED · TRUSTED");
+  });
+});

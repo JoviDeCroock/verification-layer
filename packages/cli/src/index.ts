@@ -12,6 +12,7 @@ import {
 } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import { cac } from "cac";
 import pc from "picocolors";
@@ -42,7 +43,11 @@ import { discoverRepository } from "../../discovery/src/index.js";
 import { renderDiscovery } from "../../discovery/src/render.js";
 import { buildVerificationGraph, createVerificationPlan } from "../../graph/src/index.js";
 import { proposeFromIncident, proposeLearnings } from "../../learning/src/index.js";
-import { renderMarkdownReport, renderTerminalReport } from "../../reporters/src/index.js";
+import {
+  renderConciseTerminalReport,
+  renderMarkdownReport,
+  renderTerminalReport,
+} from "../../reporters/src/index.js";
 import {
   approvalDigest,
   changeSetDigest,
@@ -78,6 +83,28 @@ const list = (value: unknown): string[] => {
 };
 const values = (value: unknown): string[] =>
   Array.isArray(value) ? value.map(String) : value === undefined ? [] : [String(value)];
+
+async function fileExists(file: string): Promise<boolean> {
+  try {
+    await access(file);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function promptForIntent(): Promise<string> {
+  if (!process.stdin.isTTY)
+    throw new Error(
+      'Pass --intent with the user-visible outcome, for example: trust start --intent "Users can reset their password safely".',
+    );
+  const input = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    return (await input.question("What should this change accomplish for the user?\n> ")).trim();
+  } finally {
+    input.close();
+  }
+}
 
 async function privateKeyFrom(
   file: unknown,
@@ -120,6 +147,46 @@ async function bundledSchemaDirectory(): Promise<string> {
     }
   }
   throw new Error("Bundled JSON Schemas are unavailable in this installation.");
+}
+
+async function bundledProofSummary(): Promise<{
+  thesis: string;
+  broken: { verdict: string; matrix: Array<{ status: string; summary: string }> };
+  fixed: { verdict: string; matrix: Array<{ status: string; summary: string }> };
+}> {
+  const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
+  for (const candidate of [
+    path.resolve(moduleDirectory, "../../../examples/demo-app/.trust/runs/proof-summary.json"),
+    path.resolve(moduleDirectory, "../../../../examples/demo-app/.trust/runs/proof-summary.json"),
+    path.resolve("examples/demo-app/.trust/runs/proof-summary.json"),
+  ]) {
+    try {
+      const parsed = JSON.parse(await readFile(candidate, "utf8")) as Awaited<
+        ReturnType<typeof bundledProofSummary>
+      >;
+      if (parsed.broken?.matrix && parsed.fixed?.matrix) return parsed;
+    } catch {
+      // Try source-tree, installed-package, then working-directory layout.
+    }
+  }
+  throw new Error("The bundled proof summary is unavailable in this installation.");
+}
+
+async function ensureLocalArtifactsIgnored(repositoryRoot: string): Promise<string> {
+  const ignoreFile = path.join(repositoryRoot, ".trust", ".gitignore");
+  let existing = "";
+  try {
+    existing = await readFile(ignoreFile, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+  const lines = new Set(existing.split(/\r?\n/).filter(Boolean));
+  const required = ["runs/", "keys/*.private.pem"];
+  if (required.every((line) => lines.has(line))) return ignoreFile;
+  for (const line of required) lines.add(line);
+  await mkdir(path.dirname(ignoreFile), { recursive: true });
+  await writeFile(ignoreFile, `${[...lines].join("\n")}\n`, { encoding: "utf8", mode: 0o644 });
+  return ignoreFile;
 }
 
 async function createExternalAttestation(
@@ -189,6 +256,189 @@ function storedReportProblems(report: TrustReport, config: TrustConfig): string[
   return problems;
 }
 
+cli.command("try", "See the broken-versus-fixed product proof with no setup").action(async () => {
+  const proof = await bundledProofSummary();
+  const failed = [
+    ...new Map(
+      proof.broken.matrix
+        .filter((item) => item.status === "failed")
+        .map((item) => [item.summary, item]),
+    ).values(),
+  ];
+  const fixedFailures = proof.fixed.matrix.filter(
+    (item) => item.status === "failed" || item.status === "not_verified",
+  );
+  console.log(pc.bold("EXECUTABLE TRUST — GUIDED PROOF"));
+  console.log(pc.dim("Bundled result from the full deterministic demo matrix."));
+  console.log(
+    "\nOrdinary checks pass in both variants. Independent QA exercises retries and races.",
+  );
+  console.log(`\n${pc.red("BROKEN · NOT TRUSTED")}`);
+  for (const item of failed.slice(0, 3)) console.log(`${pc.red("✗")} ${item.summary}`);
+  console.log(`\n${pc.green("FIXED · TRUSTED")}`);
+  if (!fixedFailures.length)
+    console.log(`${pc.green("✓")} The same evidence matrix establishes every approved behavior.`);
+  else for (const item of fixedFailures) console.log(`${pc.yellow("!")} ${item.summary}`);
+  console.log(`\n${proof.thesis}`);
+  console.log(
+    '\nNext: run `trust start --intent "Describe the user-visible outcome"` in your repository.',
+  );
+});
+
+cli
+  .command("start [repository]", "Go from a repository and one intent sentence to a local verdict")
+  .option("--intent <text>", "User-visible outcome this change must accomplish")
+  .option("--risk <risk>", "Declared risk; repeat or comma-separate")
+  .option("--base <ref>", "Git base ref used to derive committed changes")
+  .option("--config <file>", "Local policy path; defaults to <repository>/trust.yaml")
+  .option("--contract <file>", "Generated approved contract path")
+  .option("--output <directory>", "Evidence output directory", {
+    default: ".trust/runs/latest",
+  })
+  .option("--preview-url <url>", "Running application preview URL")
+  .action(async (repository = ".", options) => {
+    const discovery = await discoverRepository(repository);
+    const intent = String(options.intent ?? (await promptForIntent())).trim();
+    if (!intent) throw new Error("Intent must not be empty.");
+    const identity = await currentGitIdentity(discovery.root);
+    if (!identity.headSha)
+      throw new Error(
+        "Guided start requires a Git repository with an initial commit so evidence can be bound to a real change.",
+      );
+    // Resolve the candidate before writing onboarding artifacts. The generated
+    // policy, contract, and report must never become evidence about themselves.
+    const changeSet = await resolveGitChangeSet(discovery.root, options.base);
+    const configFile = path.resolve(options.config ?? path.join(discovery.root, "trust.yaml"));
+    let config: TrustConfig;
+    let createdPolicy = false;
+    if (await fileExists(configFile)) {
+      config = await loadTrustConfig(configFile);
+      if (
+        config.authority?.allow_local_approvals !== true ||
+        config.authority?.require_signed_reports !== false
+      )
+        throw new Error(
+          `Existing policy ${configFile} requires enforced authority. Use trust contract:init and trust verify, or choose a separate local policy with --config.`,
+        );
+    } else {
+      config = trustConfigSchema.parse({
+        ...discovery.config,
+        repository: {
+          ...discovery.config.repository,
+          root: path.relative(path.dirname(configFile), discovery.root) || ".",
+          allow_explicit_changed_files: false,
+        },
+        authority: {
+          allow_local_approvals: true,
+          require_signed_reports: false,
+          trusted_approvers: [],
+          trusted_reporters: [],
+        },
+      });
+      await mkdir(path.dirname(configFile), { recursive: true });
+      await writeFile(configFile, YAML.stringify(config, { lineWidth: 100 }), {
+        encoding: "utf8",
+        flag: "wx",
+        mode: 0o644,
+      });
+      createdPolicy = true;
+    }
+    const evidence = [
+      ...config.checks.map((item) => item.id),
+      ...config.invariants.map((item) => item.id),
+      ...config.verifiers.map((item) => item.id),
+      ...(config.qa.enabled ? ["qa"] : []),
+    ];
+    if (!evidence.length)
+      throw new Error(
+        `No executable evidence was discovered. Add a test, build, typecheck, or verifier, then rerun trust start. Policy: ${configFile}`,
+      );
+    if (!config.surfaces.length)
+      throw new Error(
+        `No product surface was discovered. Add a surface to ${configFile}, then rerun trust start.`,
+      );
+    console.log(pc.bold(`EXECUTABLE TRUST — ${discovery.name}`));
+    console.log(
+      `${pc.green("✓")} ${discovery.packageManager ?? "Repository"} project; ${evidence.length} executable evidence source(s)`,
+    );
+    console.log(
+      `${pc.green("✓")} ${createdPolicy ? "Created" : "Using"} safe local policy ${configFile}`,
+    );
+    if (!changeSet.changedFiles.length) {
+      console.log("No Git changes are currently available to verify.");
+      console.log(`Next: make a change, then run trust start --intent ${JSON.stringify(intent)}.`);
+      return;
+    }
+    const id = slugify(intent) || "change";
+    const draft = changeContractSchema.parse({
+      version: 1,
+      id,
+      intent,
+      expected_behaviors: [
+        {
+          id: "primary-behavior",
+          description: intent,
+          evidence,
+        },
+      ],
+      affected_surfaces: config.surfaces.map((surface) => surface.id),
+      risks: list(options.risk),
+      required_evidence: evidence,
+      excluded: [],
+      approval: { status: "draft" },
+    });
+    const withMissions = changeContractSchema.parse({
+      ...draft,
+      qa_missions: generateMissions(draft),
+    });
+    const approvedContent = {
+      ...withMissions,
+      approval: {
+        status: "approved" as const,
+        approved_by: "local-user",
+        approved_at: new Date().toISOString(),
+        method: "local" as const,
+      },
+    };
+    const contract = changeContractSchema.parse({
+      ...approvedContent,
+      approval: {
+        ...approvedContent.approval,
+        content_sha256: approvalDigest(approvedContent),
+      },
+    });
+    const contractFile = path.resolve(
+      options.contract ?? path.join(discovery.root, ".trust", "contracts", "current.yaml"),
+    );
+    if (options.contract && (await fileExists(contractFile)))
+      throw new Error(
+        `Refusing to overwrite existing contract ${contractFile}. Pass --contract with a new path.`,
+      );
+    await ensureLocalArtifactsIgnored(discovery.root);
+    await writeYamlFile(contractFile, contract);
+    const outputDirectory = path.resolve(discovery.root, String(options.output));
+    console.log(`${pc.green("✓")} Approved local intent: ${intent}`);
+    console.log(`${pc.green("✓")} Git change set: ${changeSet.changedFiles.length} file(s)`);
+    console.log(pc.dim(`  ${changeSet.changedFiles.join(", ")}`));
+    console.log(pc.dim(`  Evidence: ${evidence.join(", ")}`));
+    console.log("\nRunning relevant evidence…\n");
+    const report = await verifyChange({
+      config,
+      contract,
+      repositoryRoot: discovery.root,
+      changedFiles: changeSet.changedFiles,
+      changedFilesSource: "git",
+      ...(changeSet.baseSha ? { baseSha: changeSet.baseSha } : {}),
+      outputDirectory,
+      ...(options.previewUrl ? { previewUrl: String(options.previewUrl) } : {}),
+    });
+    console.log(pc.dim(`Contract: ${contractFile}`));
+    process.stdout.write(
+      renderConciseTerminalReport(report, path.join(outputDirectory, "report.json")),
+    );
+    if (report.verdict !== "trusted") process.exitCode = 1;
+  });
+
 cli
   .command("init [repository]", "Discover repository verification and write an initial trust model")
   .option("--output <file>", "Output YAML path")
@@ -229,6 +479,7 @@ cli
       reporterPrivate: path.join(keyDirectory, "reporter.private.pem"),
       reporterPublic: path.join(keyDirectory, "reporter.public.txt"),
     };
+    await ensureLocalArtifactsIgnored(discovery.root);
     const existing: string[] = [];
     for (const file of Object.values(targets))
       try {
@@ -296,18 +547,15 @@ cli
         `Setup could not complete atomically: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
-    console.log(pc.green(`Created strict trust policy ${configFile}`));
+    console.log(pc.green(`Created attested-ready trust policy ${configFile}`));
     console.log(`Approver ${approverId}: ${approver.fingerprint} (${targets.approverPrivate})`);
     console.log(`Reporter ${reporterId}: ${reporter.fingerprint} (${targets.reporterPrivate})`);
     console.log(`Keys are active until ${notAfter}.`);
     console.log("\nNext:");
-    console.log(`1. trust schema:export ${path.join(discovery.root, ".trust", "schemas")}`);
-    console.log(`2. Review discovered checks and define product surfaces in ${configFile}.`);
-    console.log(
-      `3. trust doctor --config ${configFile} (it remains blocked until the evidence model is complete)`,
-    );
-    console.log(`4. Create and sign a contract with ${targets.approverPrivate}.`);
-    console.log(`5. Store ${targets.reporterPrivate} in protected CI authority.`);
+    console.log(`1. trust doctor --config ${configFile} --require attested`);
+    console.log(`2. Review the generated policy when you need narrower product surfaces.`);
+    console.log(`3. Create and sign a contract with ${targets.approverPrivate}.`);
+    console.log(`4. Store ${targets.reporterPrivate} in protected CI authority.`);
   });
 
 cli
@@ -539,6 +787,175 @@ cli
   });
 
 cli
+  .command("enable <target>", "Upgrade local verification to protected merge enforcement")
+  .option("--config <file>", "Policy", { default: "trust.yaml" })
+  .option("--contract <file>", "Approved contract; defaults to the newest .trust contract")
+  .option("--output <file>", "GitHub Actions workflow", {
+    default: ".github/workflows/trust.yml",
+  })
+  .option("--approver <id>", "Approver identity", { default: "product-owner" })
+  .option("--reporter <id>", "Reporter identity", { default: "ci" })
+  .option("--valid-days <days>", "Authority key lifetime", { default: 365 })
+  .option("--authority-package <spec>", "Exact authority CLI package spec")
+  .option("--key-secret <name>", "GitHub secret for the reporter private key", {
+    default: "TRUST_REPORT_PRIVATE_KEY",
+  })
+  .action(async (target, options) => {
+    if (target !== "github") throw new Error("The supported enable target is github.");
+    const configFile = path.resolve(options.config);
+    const originalConfig = await loadTrustConfig(configFile);
+    const repositoryRoot = path.resolve(path.dirname(configFile), originalConfig.repository.root);
+    let contractFile: string;
+    if (options.contract) contractFile = path.resolve(options.contract);
+    else {
+      const directory = path.join(repositoryRoot, ".trust", "contracts");
+      const candidates = (await readdir(directory).catch(() => []))
+        .filter((file) => /\.ya?ml$/i.test(file))
+        .map((file) => path.join(directory, file));
+      if (!candidates.length)
+        throw new Error(
+          "No generated contract was found. Pass --contract or run trust start first.",
+        );
+      const dated = await Promise.all(
+        candidates.map(async (file) => ({ file, modified: (await stat(file)).mtimeMs })),
+      );
+      contractFile = dated.sort((left, right) => right.modified - left.modified)[0]!.file;
+    }
+    const contract = await loadChangeContract(contractFile);
+    const approverId = String(options.approver).trim();
+    const reporterId = String(options.reporter).trim();
+    if (!approverId || !reporterId || approverId === reporterId)
+      throw new Error("Approver and reporter identities must be non-empty and distinct.");
+    const validDays = Number(options.validDays);
+    if (!Number.isInteger(validDays) || validDays < 1 || validDays > 3_650)
+      throw new Error("--valid-days must be an integer from 1 through 3650.");
+    const keyDirectory = path.join(repositoryRoot, ".trust", "keys");
+    const approverPrivateFile = path.join(keyDirectory, "approver.private.pem");
+    const approverPublicFile = path.join(keyDirectory, "approver.public.txt");
+    const reporterPrivateFile = path.join(keyDirectory, "reporter.private.pem");
+    const reporterPublicFile = path.join(keyDirectory, "reporter.public.txt");
+    const outputFile = path.resolve(repositoryRoot, String(options.output));
+    for (const file of [
+      approverPrivateFile,
+      approverPublicFile,
+      reporterPrivateFile,
+      reporterPublicFile,
+      outputFile,
+    ])
+      if (await fileExists(file))
+        throw new Error(`Refusing to overwrite enforcement file ${file}.`);
+    const approver = generateAuthorityKeyPair();
+    const reporter = generateAuthorityKeyPair();
+    const notBefore = new Date().toISOString();
+    const notAfter = new Date(Date.now() + validDays * 86_400_000).toISOString();
+    const config = trustConfigSchema.parse({
+      ...originalConfig,
+      repository: { ...originalConfig.repository, allow_explicit_changed_files: false },
+      authority: {
+        allow_local_approvals: false,
+        require_signed_reports: true,
+        trusted_approvers: [
+          {
+            id: approverId,
+            public_key_base64: approver.publicKeyBase64,
+            not_before: notBefore,
+            not_after: notAfter,
+          },
+        ],
+        trusted_reporters: [
+          {
+            id: reporterId,
+            public_key_base64: reporter.publicKeyBase64,
+            not_before: notBefore,
+            not_after: notAfter,
+          },
+        ],
+      },
+    });
+    const approvedContent = {
+      ...contract,
+      approval: {
+        status: "approved" as const,
+        approved_by: approverId,
+        approved_at: new Date().toISOString(),
+        method: "ed25519" as const,
+        key_id: approverId,
+      },
+    };
+    const digestBound = {
+      ...approvedContent,
+      approval: {
+        ...approvedContent.approval,
+        content_sha256: approvalDigest(approvedContent),
+      },
+    };
+    const signedContract = changeContractSchema.parse({
+      ...digestBound,
+      approval: {
+        ...digestBound.approval,
+        signature: signDigest(approvalSignatureDigest(digestBound), approver.privateKeyPem),
+      },
+    });
+    const review = reviewContract(signedContract, config);
+    if (!review.valid)
+      throw new Error(
+        `The contract is not ready for enforcement:\n${review.blockingIssues.map((issue) => `- ${issue}`).join("\n")}`,
+      );
+    const discovery = await discoverRepository(repositoryRoot);
+    if (discovery.packageManager !== "npm" && discovery.packageManager !== "pnpm")
+      throw new Error(
+        `GitHub enablement currently supports npm and pnpm projects; discovered ${discovery.packageManager ?? "no package manager"}. Use trust ci:init --package-manager after defining the install strategy for this repository.`,
+      );
+    const packageManager = discovery.packageManager;
+    const workflow = renderGitHubWorkflow({
+      configFile: path.relative(repositoryRoot, configFile),
+      contractFile: path.relative(repositoryRoot, contractFile),
+      packageManager,
+      authorityPackage: String(
+        options.authorityPackage ?? `executable-trust-layer@${TRUST_VERSION}`,
+      ),
+      reporterId,
+      privateKeySecret: String(options.keySecret),
+    });
+    await ensureLocalArtifactsIgnored(repositoryRoot);
+    const originalConfigText = await readFile(configFile, "utf8");
+    const originalContractText = await readFile(contractFile, "utf8");
+    const created: string[] = [];
+    try {
+      await mkdir(keyDirectory, { recursive: true });
+      for (const [file, contents, mode] of [
+        [approverPrivateFile, approver.privateKeyPem, 0o600],
+        [approverPublicFile, `${approver.publicKeyBase64}\n`, 0o644],
+        [reporterPrivateFile, reporter.privateKeyPem, 0o600],
+        [reporterPublicFile, `${reporter.publicKeyBase64}\n`, 0o644],
+      ] as const) {
+        await writeFile(file, contents, { encoding: "utf8", flag: "wx", mode });
+        created.push(file);
+      }
+      await writeYamlFile(configFile, config);
+      await writeYamlFile(contractFile, signedContract);
+      await mkdir(path.dirname(outputFile), { recursive: true });
+      await writeFile(outputFile, workflow, { encoding: "utf8", flag: "wx", mode: 0o644 });
+      created.push(outputFile);
+    } catch (error) {
+      await Promise.all(created.map((file) => unlink(file).catch(() => undefined)));
+      await writeFile(configFile, originalConfigText, "utf8");
+      await writeFile(contractFile, originalContractText, "utf8");
+      throw new Error(
+        `GitHub enablement could not complete atomically: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    console.log(pc.green("GitHub merge enforcement is ready locally."));
+    console.log(`Workflow: ${outputFile}`);
+    console.log(`Signed contract: ${contractFile}`);
+    console.log(`Reporter private key: ${reporterPrivateFile}`);
+    console.log(`GitHub secret: ${String(options.keySecret)}`);
+    console.log(`Repository variable TRUST_POLICY_SHA256: ${sha256(config)}`);
+    console.log("Required status check: Trust authority / attest");
+    console.log("Next: protect the trust-authority environment and add the secret and variable.");
+  });
+
+cli
   .command("contract:init [output]", "Create a draft, evidence-linked change contract")
   .option("--config <file>", "Trust configuration", { default: "trust.yaml" })
   .option("--id <id>", "Stable change identifier")
@@ -665,14 +1082,23 @@ cli
   .command("doctor", "Validate configuration, evidence references, and local adapter readiness")
   .option("--config <file>", "Trust configuration", { default: "trust.yaml" })
   .option("--contract <file>", "Optional change contract")
+  .option("--require <level>", "Required readiness: trial, local, or attested", {
+    default: "local",
+  })
   .option("--format <format>", "terminal or json", { default: "terminal" })
   .action(async (options) => {
     if (options.format !== "terminal" && options.format !== "json")
       throw new Error("--format must be terminal or json.");
+    const readinessLevels = ["trial", "local", "attested"] as const;
+    const requestedLevel = String(options.require);
+    if (!readinessLevels.some((level) => level === requestedLevel))
+      throw new Error("--require must be trial, local, or attested.");
+    const requiredLevel = requestedLevel as (typeof readinessLevels)[number];
     const configFile = path.resolve(options.config);
     const config = await loadTrustConfig(configFile);
     const repositoryRoot = path.resolve(path.dirname(configFile), config.repository.root);
-    const problems: string[] = [];
+    const localProblems: string[] = [];
+    const attestedProblems: string[] = [];
     const warnings: string[] = [];
     const trustedApprovers = config.authority?.trusted_approvers ?? [];
     const trustedReporters = config.authority?.trusted_reporters ?? [];
@@ -686,21 +1112,27 @@ cli
     const evidenceSourceCount =
       config.checks.length + config.invariants.length + config.verifiers.length;
     if (!evidenceSourceCount)
-      problems.push(
+      localProblems.push(
         "verification: no checks, invariants, or verifiers are configured; an empty policy cannot establish trust",
       );
     if (!config.surfaces.length)
-      problems.push(
+      localProblems.push(
         "verification: no product surfaces are configured; approved intent cannot be scoped to the repository",
       );
     if (config.authority?.allow_local_approvals !== true && !activeApprovers.length)
-      problems.push(
+      localProblems.push(
         "authority: local approvals are disabled but no active trusted approver keys are configured",
       );
-    if (config.authority?.require_signed_reports !== false && !activeReporters.length)
-      problems.push(
-        "authority: signed reports are required but no active reporter keys are configured",
-      );
+    if (!activeApprovers.length)
+      attestedProblems.push("authority: attested readiness requires an active approver key");
+    if (!activeReporters.length)
+      attestedProblems.push("authority: attested readiness requires an active reporter key");
+    if (config.authority?.allow_local_approvals === true)
+      attestedProblems.push("authority: attested readiness does not allow local approvals");
+    if (config.authority?.require_signed_reports === false)
+      attestedProblems.push("authority: attested readiness requires signed reports");
+    if (config.repository.allow_explicit_changed_files === true)
+      attestedProblems.push("repository: attested readiness requires Git-derived change sets");
     if (config.authority?.allow_local_approvals === true)
       warnings.push("authority: local approvals are enabled");
     if (config.authority?.require_signed_reports === false)
@@ -708,10 +1140,12 @@ cli
     if (config.repository.allow_explicit_changed_files === true)
       warnings.push("repository: explicit changed-file lists are allowed");
     if (
-      [...config.checks, ...config.invariants].length &&
+      (config.checks.some((check) => "command" in check) || config.invariants.length > 0) &&
       config.execution?.allow_shell_commands !== true
     )
-      problems.push("execution: shell-backed checks exist but allow_shell_commands is not enabled");
+      localProblems.push(
+        "execution: shell-backed checks exist but allow_shell_commands is not enabled",
+      );
     if (config.execution?.allow_shell_commands === true)
       warnings.push("execution: trusted repository shell commands are enabled");
     if (config.execution?.inherit_environment === true)
@@ -730,7 +1164,7 @@ cli
       );
     for (const key of [...trustedApprovers, ...trustedReporters]) {
       if (!publicKeyIsValid(key.public_key_base64))
-        problems.push(`authority: ${key.id} does not contain a valid Ed25519 public key`);
+        localProblems.push(`authority: ${key.id} does not contain a valid Ed25519 public key`);
       const validityProblem = authorityKeyValidityProblem(key, now);
       if (validityProblem) warnings.push(`authority: ${validityProblem}`);
       else if (key.not_after && new Date(key.not_after).getTime() - Date.now() < 30 * 86_400_000)
@@ -739,12 +1173,12 @@ cli
     for (const verifier of config.verifiers) {
       if (verifier.kind === "agent-browser" || verifier.kind === "agent-device") {
         if (!verifier.executor)
-          problems.push(`${verifier.id}: missing QA executor provenance in repository policy`);
+          localProblems.push(`${verifier.id}: missing QA executor provenance in repository policy`);
         const adapter = path.resolve(repositoryRoot, verifier.adapter);
         try {
           await access(adapter);
         } catch {
-          problems.push(`${verifier.id}: missing adapter ${adapter}`);
+          localProblems.push(`${verifier.id}: missing adapter ${adapter}`);
         }
       }
       if (verifier.kind === "playwright" && verifier.executable.includes("/")) {
@@ -752,29 +1186,46 @@ cli
         try {
           await access(executable);
         } catch {
-          problems.push(`${verifier.id}: missing executable ${executable}`);
+          localProblems.push(`${verifier.id}: missing executable ${executable}`);
         }
       }
     }
     if (config.qa.enabled) {
-      if (!config.qa.adapter) problems.push("qa: enabled but no adapter is configured");
+      if (!config.qa.adapter) localProblems.push("qa: enabled but no adapter is configured");
       if (!config.qa.executor)
-        problems.push("qa: enabled but executor provenance is not declared in repository policy");
+        localProblems.push(
+          "qa: enabled but executor provenance is not declared in repository policy",
+        );
       if (config.qa.adapter)
         try {
           await access(path.resolve(repositoryRoot, config.qa.adapter));
         } catch {
-          problems.push(`qa: missing adapter ${path.resolve(repositoryRoot, config.qa.adapter)}`);
+          localProblems.push(
+            `qa: missing adapter ${path.resolve(repositoryRoot, config.qa.adapter)}`,
+          );
         }
     }
     if (options.contract) {
       const contract = await loadChangeContract(path.resolve(options.contract));
-      problems.push(...reviewContract(contract, config).blockingIssues);
+      localProblems.push(...reviewContract(contract, config).blockingIssues);
     }
+    const readiness = {
+      trial: true,
+      local: localProblems.length === 0,
+      attested: localProblems.length === 0 && attestedProblems.length === 0,
+    };
+    const problems =
+      requiredLevel === "trial"
+        ? []
+        : requiredLevel === "local"
+          ? localProblems
+          : [...localProblems, ...attestedProblems];
     const result = doctorResultSchema.parse({
       version: 1,
       repository: config.repository.name,
-      ready: problems.length === 0,
+      required_level: requiredLevel,
+      readiness,
+      ready: readiness[requiredLevel],
       counts: {
         checks: config.checks.length,
         invariants: config.invariants.length,
@@ -796,9 +1247,13 @@ cli
         `Verifiers: ${result.verifiers.map((item) => `${item.id} (${item.kind})`).join(", ") || "none"}`,
       );
       console.log(`Surfaces: ${result.counts.surfaces}`);
+      console.log("");
+      console.log(`${result.readiness.trial ? pc.green("✓") : pc.red("✗")} Trial readiness`);
+      console.log(`${result.readiness.local ? pc.green("✓") : pc.red("✗")} Local readiness`);
+      console.log(`${result.readiness.attested ? pc.green("✓") : pc.dim("○")} Attested readiness`);
       for (const warning of warnings) console.log(pc.yellow(`! ${warning}`));
       if (problems.length) for (const problem of problems) console.log(pc.red(`✗ ${problem}`));
-      else console.log(pc.green("✓ Configuration and local adapter references are ready."));
+      else console.log(pc.green(`✓ Ready for ${requiredLevel} verification.`));
     }
     if (!result.ready) process.exitCode = 1;
   });
@@ -870,6 +1325,7 @@ cli
   .option("--report-key <file>", "Ed25519 private key used to attest the report")
   .option("--report-key-env <name>", "Environment variable containing the report private key")
   .option("--report-signer <id>", "Trusted reporter identity for --report-key")
+  .option("--verbose", "Print the complete evidence report instead of the concise verdict")
   .option("--no-ci-output", "Do not publish GitHub Actions summary, outputs, or annotations")
   .action(async (options) => {
     const configFile = path.resolve(options.config);
@@ -913,7 +1369,11 @@ cli
       ...(options.previewUrl ? { previewUrl: options.previewUrl } : {}),
       signal: controller.signal,
     }).finally(() => process.removeListener("SIGINT", cancel));
-    process.stdout.write(renderTerminalReport(report));
+    process.stdout.write(
+      options.verbose
+        ? renderTerminalReport(report)
+        : renderConciseTerminalReport(report, path.join(outputDirectory, "report.json")),
+    );
     if (options.ciOutput !== false)
       await publishGitHubReport(report, path.join(outputDirectory, "report.json"));
     if (report.verdict !== "trusted") process.exitCode = 1;
@@ -1207,6 +1667,7 @@ cli
         `The report is not semantically valid:\n${semanticProblems.map((item) => `- ${item}`).join("\n")}`,
       );
     report.learning_proposals = proposeLearnings(report);
+    report.assurance = { level: "attested" };
     report.attestation = privateKeyPem
       ? createReportAttestation(report, signerId, privateKeyPem)
       : await createExternalAttestation(
@@ -1249,6 +1710,38 @@ cli
   });
 
 cli
+  .command("explain [evidence]", "Explain the latest verdict or one evidence result")
+  .option("--report <file>", "Report JSON", { default: ".trust/runs/latest/report.json" })
+  .action(async (evidenceId, options) => {
+    const reportFile = path.resolve(options.report);
+    const report = await loadTrustReport(reportFile);
+    if (!evidenceId) {
+      process.stdout.write(renderTerminalReport(report));
+      return;
+    }
+    const requested = String(evidenceId);
+    const matches = report.evidence.filter(
+      (item) => item.id === requested || item.source_id === requested,
+    );
+    if (!matches.length)
+      throw new Error(
+        `No evidence matched ${JSON.stringify(requested)}. Run trust explain to list all results.`,
+      );
+    console.log(pc.bold(`TRUST EXPLAIN — ${requested}`));
+    for (const item of matches) {
+      console.log(`\n${item.status.toUpperCase()} · ${item.id}`);
+      console.log(item.summary);
+      if (item.reason) console.log(`Reason: ${item.reason}`);
+      if (item.command) console.log(`Command: ${item.command}`);
+      if (item.duration_ms !== undefined) console.log(`Duration: ${item.duration_ms} ms`);
+      if (item.measurements && Object.keys(item.measurements).length)
+        console.log(`Measurements: ${JSON.stringify(item.measurements, null, 2)}`);
+      if (item.artifacts?.length) console.log(`Artifacts: ${item.artifacts.join(", ")}`);
+      if (item.stderr) console.log(`Error output:\n${item.stderr}`);
+    }
+  });
+
+cli
   .command("learn <result>", "Propose human-approved improvements from verification evidence")
   .option("--output <file>", "Optional YAML output")
   .action(async (result, options) => {
@@ -1286,6 +1779,7 @@ cli.help();
 cli.version(TRUST_VERSION);
 
 try {
+  if (process.argv.length === 2) process.argv.push("start");
   cli.parse(process.argv, { run: false });
   await cli.runMatchedCommand();
 } catch (error) {

@@ -67,7 +67,7 @@ export function renderGitHubWorkflow(input: GitHubWorkflowInput): string {
     "          persist-credentials: false",
     ...install,
     `      - run: npm install --global ${authorityPackage} --ignore-scripts --registry=https://registry.npmjs.org`,
-    `      - run: trust doctor --config ${config} --contract ${contract}`,
+    `      - run: trust doctor --config ${config} --contract ${contract} --require attested`,
     "      - name: Verify approved intent",
     "        id: trust",
     "        continue-on-error: true",

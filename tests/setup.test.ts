@@ -87,11 +87,13 @@ describe("first-run setup", () => {
         0o600,
       );
       const readiness = await doctor(repository);
-      expect(readiness.exitCode).toBe(1);
+      expect(readiness.exitCode).toBe(0);
       expect(JSON.parse(readiness.stdout)).toEqual(
         expect.objectContaining({
-          ready: false,
-          problems: expect.arrayContaining([expect.stringContaining("shell-backed checks")]),
+          required_level: "local",
+          ready: true,
+          readiness: { trial: true, local: true, attested: true },
+          problems: [],
           warnings: expect.arrayContaining([
             expect.stringContaining("repository-wide starter surface"),
           ]),
@@ -117,6 +119,8 @@ describe("first-run setup", () => {
       expect(JSON.parse(readiness.stdout)).toEqual(
         expect.objectContaining({
           ready: false,
+          required_level: "local",
+          readiness: { trial: true, local: false, attested: false },
           counts: expect.objectContaining({ checks: 0, invariants: 0, verifiers: 0, surfaces: 0 }),
           problems: expect.arrayContaining([
             expect.stringContaining("no checks, invariants, or verifiers"),

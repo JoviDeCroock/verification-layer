@@ -700,6 +700,22 @@
         ]
       }
     },
+    "assurance": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": [
+            "trial",
+            "local",
+            "attested"
+          ]
+        }
+      },
+      "required": [
+        "level"
+      ]
+    },
     "verdict": {
       "type": "string",
       "enum": [

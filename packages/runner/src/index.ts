@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import path from "node:path";
 import type { Evidence, TrustConfig, VerificationPlan } from "../../core/src/index.js";
 
 export interface CommandResult {
@@ -201,7 +202,7 @@ export async function runSelectedChecks(
     signal?.throwIfAborted();
     const check = config.checks.find((item) => item.id === id);
     if (!check) continue;
-    if (config.execution?.allow_shell_commands !== true) {
+    if ("command" in check && config.execution?.allow_shell_commands !== true) {
       evidence.push({
         id: check.id,
         source_id: check.id,
@@ -214,10 +215,11 @@ export async function runSelectedChecks(
     }
     const results = await runProcessWithRetries(
       {
-        executable: check.command,
-        cwd,
+        executable: "command" in check ? check.command : check.executable,
+        ...("command" in check ? {} : { args: check.args }),
+        cwd: "command" in check ? cwd : path.resolve(cwd, check.cwd),
         timeoutMs: check.timeout_ms,
-        shell: true,
+        ...("command" in check ? { shell: true } : { env: check.env, shell: false }),
         inheritEnv: config.execution?.inherit_environment === true,
         ...(signal ? { signal } : {}),
       },
@@ -234,7 +236,7 @@ export async function runSelectedChecks(
           result.exitCode === 0
             ? `${check.label ?? check.id} passed${results.length > 1 ? ` on attempt ${index + 1}` : ""}.`
             : `${check.label ?? check.id} failed on attempt ${index + 1}${result.timedOut ? " (timed out)" : result.aborted ? " (cancelled)" : ""}.`,
-        command: check.command,
+        command: "command" in check ? check.command : [check.executable, ...check.args].join(" "),
         duration_ms: result.durationMs,
         stdout: result.stdout.slice(-12_000),
         stderr: result.stderr.slice(-12_000),

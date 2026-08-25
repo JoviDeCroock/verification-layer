@@ -9,18 +9,32 @@ export const evidenceStatusSchema = z.enum([
 
 export type EvidenceStatus = z.infer<typeof evidenceStatusSchema>;
 
+export const assuranceLevelSchema = z.enum(["trial", "local", "attested"]);
+export type AssuranceLevel = z.infer<typeof assuranceLevelSchema>;
+
 const stringList = z.array(z.string()).default([]);
 
-export const checkSchema = z.object({
+const checkBaseSchema = z.object({
   id: z.string().min(1),
   label: z.string().optional(),
   kind: z.enum(["static", "test", "e2e", "security", "architecture", "custom"]),
-  command: z.string().min(1),
   scope: stringList,
   tags: stringList,
   required: z.boolean().default(false),
   timeout_ms: z.number().int().positive().default(120_000),
 });
+
+export const checkSchema = z.union([
+  checkBaseSchema.extend({
+    command: z.string().min(1),
+  }),
+  checkBaseSchema.extend({
+    executable: z.string().min(1),
+    args: stringList,
+    cwd: z.string().default("."),
+    env: z.record(z.string(), z.string()).default({}),
+  }),
+]);
 
 export const invariantSchema = z.object({
   id: z.string().min(1),
@@ -526,6 +540,12 @@ export const trustReportSchema = z.object({
       source_evidence: z.string(),
     }),
   ),
+  // Optional so reports created before assurance labeling remain readable.
+  assurance: z
+    .object({
+      level: assuranceLevelSchema,
+    })
+    .optional(),
   verdict: z.enum(["trusted", "not_trusted", "insufficient_evidence"]),
   attestation: z
     .object({
@@ -541,6 +561,12 @@ export const trustReportSchema = z.object({
 export const doctorResultSchema = z.object({
   version: z.literal(1),
   repository: z.string().min(1),
+  required_level: assuranceLevelSchema,
+  readiness: z.object({
+    trial: z.boolean(),
+    local: z.boolean(),
+    attested: z.boolean(),
+  }),
   ready: z.boolean(),
   counts: z.object({
     checks: z.number().int().nonnegative(),

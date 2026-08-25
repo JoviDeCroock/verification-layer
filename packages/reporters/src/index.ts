@@ -1,5 +1,5 @@
 import pc from "picocolors";
-import type { Evidence, TrustReport } from "../../core/src/index.js";
+import type { AssuranceLevel, Evidence, TrustReport } from "../../core/src/index.js";
 
 const statusIcon = (status: Evidence["status"]): string => {
   if (status === "verified") return "✓";
@@ -15,6 +15,56 @@ const terminalIcon = (status: Evidence["status"]): string => {
   if (status === "not_verified") return pc.yellow(icon);
   return pc.dim(icon);
 };
+
+export function reportAssuranceLevel(report: TrustReport): AssuranceLevel {
+  return (
+    report.assurance?.level ??
+    (report.attestation
+      ? "attested"
+      : report.provenance.repository.changed_files_source === "git"
+        ? "local"
+        : "trial")
+  );
+}
+
+export function renderConciseTerminalReport(report: TrustReport, reportFile?: string): string {
+  const assurance = reportAssuranceLevel(report);
+  const claims = report.evidence.filter((item) => item.category === "claim");
+  const established = claims.filter((item) => item.status === "verified").length;
+  const executable = report.evidence.filter(
+    (item) => item.category !== "claim" && item.category !== "plan",
+  );
+  const verified = executable.filter((item) => item.status === "verified").length;
+  const headline =
+    report.verdict === "trusted"
+      ? pc.green("TRUSTED")
+      : report.verdict === "not_trusted"
+        ? pc.red("NOT TRUSTED")
+        : pc.yellow("INSUFFICIENT EVIDENCE");
+  const lines = [
+    `${pc.bold(headline)} · ${assurance.toUpperCase()} ASSURANCE`,
+    "",
+    report.contract.intent,
+    "",
+    `${established}/${claims.length} behaviors established · ${verified}/${executable.length} executable results verified`,
+  ];
+  const blockers = report.evidence.filter(
+    (item) => item.status === "failed" || item.status === "not_verified",
+  );
+  if (blockers.length) {
+    lines.push("", pc.bold("Needs attention"));
+    for (const item of blockers.slice(0, 6))
+      lines.push(`${terminalIcon(item.status)} ${item.summary}`);
+    if (blockers.length > 6) lines.push(pc.dim(`…and ${blockers.length - 6} more`));
+  }
+  lines.push("", `Report: ${reportFile ?? ".trust/runs/latest/report.json"}`);
+  lines.push(
+    assurance === "attested"
+      ? "Next: append the signed report with `trust audit:append`."
+      : "Next: run `trust explain` for details or `trust enable github` for attested CI.",
+  );
+  return `${lines.join("\n")}\n`;
+}
 
 function missionGenerationSummary(report: TrustReport): string[] {
   const groups = new Map<
@@ -92,6 +142,7 @@ export function renderTerminalReport(report: TrustReport): string {
     `Change set: ${report.provenance.repository.changed_files_source}`,
     `Snapshot: ${report.provenance.digests.change_set_sha256.slice(0, 12)}`,
     `Attestation: ${report.attestation ? `${report.attestation.signer_id} (${report.attestation.algorithm})` : "none"}`,
+    `Assurance: ${reportAssuranceLevel(report)}`,
   );
   lines.push("", pc.bold("Behavior claims"));
   const claims = report.evidence.filter((item) => item.category === "claim");
@@ -147,6 +198,7 @@ export function renderMarkdownReport(report: TrustReport): string {
     `- Plan digest: \`${report.provenance.digests.plan_sha256}\``,
     `- Change-set digest: \`${report.provenance.digests.change_set_sha256}\``,
     `- Attestation: ${report.attestation ? `signed by **${report.attestation.signer_id}** at ${report.attestation.signed_at}` : "none"}`,
+    `- Assurance: ${reportAssuranceLevel(report)}`,
     ...(report.provenance.target.preview_origin
       ? [`- Preview origin: ${report.provenance.target.preview_origin}`]
       : []),

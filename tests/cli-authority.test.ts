@@ -207,7 +207,7 @@ describe("authority CLI", () => {
       outputDirectory,
     ]);
     expect(unsigned.exitCode).toBe(1);
-    expect(unsigned.stdout).toContain("Evidence is insufficient");
+    expect(unsigned.stdout).toContain("INSUFFICIENT EVIDENCE");
     const policyDigest = sha256(
       trustConfigSchema.parse(YAML.parse(await readFile(configFile, "utf8"))),
     );

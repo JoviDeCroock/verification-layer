@@ -113,5 +113,12 @@ export function validateReportSemantics(report: TrustReport, config: TrustConfig
   ]);
   if (report.verdict !== derivedVerdict)
     problems.push("The stored verdict does not match independently derived report semantics.");
+  const derivedAssurance = report.attestation
+    ? "attested"
+    : report.provenance.repository.changed_files_source === "git"
+      ? "local"
+      : "trial";
+  if (report.assurance && report.assurance.level !== derivedAssurance)
+    problems.push("The stored assurance level does not match report provenance and attestation.");
   return problems;
 }
