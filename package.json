@@ -14,7 +14,7 @@
   "bugs": {
     "url": "https://github.com/JoviDeCroock/verification-layer/issues"
   },
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/JoviDeCroock/verification-layer.git"
@@ -24,6 +24,8 @@
   },
   "files": [
     "AGENTS.md",
+    "CHANGELOG.md",
+    "LICENSE",
     "dist/packages",
     "docs",
     "evals",
