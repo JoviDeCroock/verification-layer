@@ -1,5 +1,5 @@
 {
-  "proven_at": "2026-08-25T05:25:02.649Z",
+  "proven_at": "2026-08-25T07:35:36.399Z",
   "thesis": "The full verifier matrix stays deterministic; independent browser and device agents reject the duplicate-invitation bug while the fixed implementation passes every required evidence category.",
   "broken": {
     "verdict": "not_trusted",
@@ -26,7 +26,7 @@
         "id": "demo-client-bundle",
         "category": "invariant",
         "status": "verified",
-        "summary": "Preact client bundle: 36304 bytes within threshold."
+        "summary": "Preact client bundle: 36304 bytes within threshold on attempt 1."
       },
       {
         "id": "api-requests:health",
@@ -123,6 +123,36 @@
         "category": "cli",
         "status": "verified",
         "summary": "CLI mission selective-plan passed."
+      },
+      {
+        "id": "claim:happy-path",
+        "category": "claim",
+        "status": "verified",
+        "summary": "Expected behavior verified: admins can invite users by email"
+      },
+      {
+        "id": "claim:authorization",
+        "category": "claim",
+        "status": "verified",
+        "summary": "Expected behavior verified: non-admins cannot invite users"
+      },
+      {
+        "id": "claim:duplicate-submission",
+        "category": "claim",
+        "status": "failed",
+        "summary": "Expected behavior was not established: duplicate invitations do not create duplicate pending invitations"
+      },
+      {
+        "id": "claim:expiration",
+        "category": "claim",
+        "status": "verified",
+        "summary": "Expected behavior verified: invitations expire after seven days"
+      },
+      {
+        "id": "claim:regression",
+        "category": "claim",
+        "status": "verified",
+        "summary": "Expected behavior verified: existing signup behavior remains unchanged"
       }
     ]
   },
@@ -151,7 +181,7 @@
         "id": "demo-client-bundle",
         "category": "invariant",
         "status": "verified",
-        "summary": "Preact client bundle: 36304 bytes within threshold."
+        "summary": "Preact client bundle: 36304 bytes within threshold on attempt 1."
       },
       {
         "id": "api-requests:health",
@@ -248,6 +278,36 @@
         "category": "cli",
         "status": "verified",
         "summary": "CLI mission selective-plan passed."
+      },
+      {
+        "id": "claim:happy-path",
+        "category": "claim",
+        "status": "verified",
+        "summary": "Expected behavior verified: admins can invite users by email"
+      },
+      {
+        "id": "claim:authorization",
+        "category": "claim",
+        "status": "verified",
+        "summary": "Expected behavior verified: non-admins cannot invite users"
+      },
+      {
+        "id": "claim:duplicate-submission",
+        "category": "claim",
+        "status": "verified",
+        "summary": "Expected behavior verified: duplicate invitations do not create duplicate pending invitations"
+      },
+      {
+        "id": "claim:expiration",
+        "category": "claim",
+        "status": "verified",
+        "summary": "Expected behavior verified: invitations expire after seven days"
+      },
+      {
+        "id": "claim:regression",
+        "category": "claim",
+        "status": "verified",
+        "summary": "Expected behavior verified: existing signup behavior remains unchanged"
       }
     ]
   }

@@ -2,11 +2,24 @@ version: 1
 id: organization-invitations
 intent: Add organization invitations without weakening authorization or existing signup behavior.
 expected_behaviors:
-  - admins can invite users by email
-  - non-admins cannot invite users
-  - duplicate invitations do not create duplicate pending invitations
-  - invitations expire after seven days
-  - existing signup behavior remains unchanged
+  - id: happy-path
+    description: admins can invite users by email
+    evidence: [intent-browser#happy-path, intent-device#happy-path]
+  - id: authorization
+    description: non-admins cannot invite users
+    evidence:
+      - api-requests#unauthorized-invitation
+      - intent-browser#authorization
+      - intent-device#authorization
+  - id: duplicate-submission
+    description: duplicate invitations do not create duplicate pending invitations
+    evidence: [intent-browser#duplicate-submission, intent-device#duplicate-submission]
+  - id: expiration
+    description: invitations expire after seven days
+    evidence: [intent-browser#expiration, intent-device#expiration]
+  - id: regression
+    description: existing signup behavior remains unchanged
+    evidence: [playwright-ui, intent-browser#regression, intent-device#regression]
 affected_surfaces:
   - team-management
   - authentication
@@ -29,4 +42,6 @@ excluded:
 approval:
   status: approved
   approved_by: demo-product-owner
-  approved_at: 2026-08-25T08:00:00.000Z
+  approved_at: 2026-08-25T04:00:00.000Z
+  content_sha256: b7a23e120cce88ebf9248383fb98cbd16e5d4a85bad911c58200de5b96e8c4f6
+  method: local

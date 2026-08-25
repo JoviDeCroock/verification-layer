@@ -19,9 +19,77 @@ Unknowns never become success. A `failed` item rejects the change. A `not_verifi
 
 The change contract is the human review surface. It contains intent, expected behavior, affected surfaces, risks, explicit evidence, exclusions, and approval metadata. Verification refuses to treat a draft contract as approved evidence.
 
+Every expected behavior has a stable kebab-case ID, a human-readable description, and one or more
+configured evidence source IDs. All of those sources must also appear in `required_evidence`.
+References may select a specific structured result with `source#result`, for example
+`api-contracts#unauthorized-user`; this prevents an unrelated result from the same verifier from
+establishing or failing the claim.
+Contracts with unknown surfaces, uncovered behaviors, missing evidence, incomplete approval
+metadata, approval timestamps later than verification, or content changed after approval are invalid.
+`contract:approve` records a canonical SHA-256 digest of the approved contract content so subsequent
+edits invalidate approval.
+
+## Authority and signatures
+
+Production approval uses Ed25519. Repository policy registers one-line SPKI public keys under
+`authority.trusted_approvers`; the contract records the signer ID and a signature binding approver,
+approval time, key ID, and approved-content digest. Local assertions fail unless
+`allow_local_approvals` is explicitly enabled for a fixture.
+
+When `require_signed_reports` is enabled (the generated-policy default), verification is insufficient
+without a private key matching a registered `trusted_reporters` identity. The final report signature
+binds the complete report, including evidence, verdict, provenance, and learning proposals.
+`report:verify` validates the signature, current policy digest, embedded contract and plan digests,
+contract authority, plan selection, selected-source coverage, every behavior claim, and verdict
+recomputation without rerunning evidence. `report:attest` performs the same semantic validation before
+signing. Reports are written atomically and `report.json` is published last as the completed-run
+marker.
+
+Key generation writes an Ed25519 PKCS#8 private key with owner-only permissions and a one-line SPKI
+public key. `authority:register` adds the public key to approver or reporter policy. A report may be
+signed during `verify`, or passed to `report:attest` when evidence execution and key custody belong to
+separate processes.
+
+An external signer is an explicit executable adapter. It receives one strict JSON object on standard
+input containing `version`, `algorithm`, `signer_id`, `signed_at`, `report_sha256`, and the
+domain-separated `signing_digest`; it returns `{ "signature": "<base64>" }`. The authority gives the
+adapter a temporary working directory and minimal process environment plus only variables explicitly
+selected with `--signer-env`. Non-zero exit, timeout, malformed JSON, or a signature that does not
+verify against the registered reporter public key fails before report persistence.
+
+Trusted keys may have activation and expiry timestamps. Revocation is retained in policy with a
+timestamp and mandatory reason; it is never represented by silently deleting the public key.
+Signatures outside the activation window fail, and a currently revoked key invalidates approval or
+report verification. Key IDs are unique per role, so rotation registers a new identity before the old
+identity is revoked.
+
 ## Selection graph
 
 The planner combines changed files, surface paths and dependencies, check scopes, invariant scopes, check risk tags, and the contract's explicit evidence. The report records every selection reason so a reviewer can audit why a verifier did or did not run.
+
+Surface dependencies are closed transitively and cycles are invalid. Risk tags are normalized across
+spaces, punctuation, and kebab-case before matching. A plan with no executable evidence is
+insufficient; approval alone can never produce a trusted verdict.
+
+## Claims and provenance
+
+Verification aggregates structured evidence by source and emits a claim result for every expected
+behavior. A claim is verified only when every named evidence source produces results and all of
+those results are verified. Missing or inconclusive sources make the claim `not_verified`; any failed
+source fails the claim.
+
+Every report records the Git head and branch, dirty state, base commit when supplied, change-set
+source, SHA-256 digests of policy, contract, plan, and changed-file contents, runtime versions, and
+the preview origin. Explicit file lists are rejected unless repository policy enables the fixture-only
+escape hatch. This
+prevents accidental ambiguity about what a report describes. The same specification supports local
+Ed25519 authority and remotely held organizational keys.
+
+Changed paths must be canonical repository-relative paths and are validated before evidence starts.
+Regular file contents and symlink targets are distinct snapshot object types; hashing never follows a
+symlink to read content outside the repository. The initial changed-file digest and Git HEAD are
+captured before execution and compared again afterward. Either moving during the run is failed plan
+evidence, and the report remains bound to the initial snapshot.
 
 ## Verifier adapters
 
@@ -44,6 +112,29 @@ Expected negative-path statuses must be declared by the adapter. They remain rec
 ## Execution safety
 
 Structured CLI and Playwright adapters do not use a shell. Legacy command checks are an explicit trusted-repository shell adapter for compatibility with existing CI scripts. Subprocess output is bounded, timeouts terminate the spawned process group, and non-terminating children are force-killed. HTTP bodies are streamed only up to the evidence capture limit. Configured headers and environment mappings are not written to reports.
+
+Generated policy disables shell-backed checks and invariant commands. Enabling them is an explicit
+repository trust decision surfaced by `doctor`. Structured child processes inherit only a minimal
+operating-system environment by default; full inheritance is a separate opt-in.
+
+`execution.max_attempts` is bounded to five and `retry_backoff_ms` to 30 seconds. Attempts are
+separate results under the same evidence source, so any failed attempt keeps its behavior claim
+unverified. Cancellation propagates to active process groups. Local retention is an explicit
+preview-then-confirm operation and ignores directories without a completed report marker.
+
+The local audit journal is JSONL with one complete signed report and governing policy digest per
+record; it deliberately does not duplicate policy adapter values into the journal.
+Records have monotonic sequence numbers and link to the SHA-256 digest of their predecessor. Writers
+use an exclusive lock, reject symlinks and invalid existing chains, append one record, and fsync it.
+Duplicate reports and stale expected heads or counts are rejected. Verification requires an accepted
+policy file for every record and independently checks its digest, report authority, and semantics. The caller
+must preserve a head digest and count outside the journal to make truncation or replacement
+detectable; filesystem chaining alone is not an append-only storage guarantee.
+
+Before persistence, evidence summaries, commands, output, errors, and string measurements are
+redacted using configured credentials, sensitive process environment values, private-key blocks, and
+common provider token formats. HTTP response bodies are used for assertions but omitted from evidence
+unless `capture_body` is explicitly enabled. Browser URLs are reduced to origin and pathname.
 
 ## Learning
 

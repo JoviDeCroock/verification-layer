@@ -2,6 +2,17 @@ version: 1
 repository:
   name: trust-demo-app
   root: .
+  allow_explicit_changed_files: true
+authority:
+  allow_local_approvals: true
+  require_signed_reports: false
+  trusted_approvers: []
+  trusted_reporters: []
+execution:
+  allow_shell_commands: true
+  inherit_environment: true
+  max_attempts: 1
+  retry_backoff_ms: 250
 knowledge:
   sources:
     - README.md

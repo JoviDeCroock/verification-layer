@@ -5,24 +5,39 @@ on:
   push:
     branches: [main, master]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: trust-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   prove:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6.0.8
         with:
           version: 11.3.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm check
+      - run: pnpm build:cli
+      - run: node dist/packages/cli/src/index.js --version
       - run: pnpm trust doctor --config examples/demo-app/trust.yaml --contract examples/demo-app/change-contract.yaml
       - run: pnpm demo:prove
-      - uses: actions/upload-artifact@v4
+      - run: pnpm trust report:verify examples/demo-app/.trust/runs/broken/report.json --config examples/demo-app/trust.yaml
+      - run: pnpm trust report:verify examples/demo-app/.trust/runs/fixed/report.json --config examples/demo-app/trust.yaml
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: trust-reports

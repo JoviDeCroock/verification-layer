@@ -1,17 +1,54 @@
 {
   "version": 1,
-  "run_id": "organization-invitations-2026-08-25T05-23-57-049Z",
-  "created_at": "2026-08-25T05:23:57.049Z",
+  "run_id": "organization-invitations-2026-08-25T07-34-35-177Z",
+  "created_at": "2026-08-25T07:34:35.177Z",
   "contract": {
     "version": 1,
     "id": "organization-invitations",
     "intent": "Add organization invitations without weakening authorization or existing signup behavior.",
     "expected_behaviors": [
-      "admins can invite users by email",
-      "non-admins cannot invite users",
-      "duplicate invitations do not create duplicate pending invitations",
-      "invitations expire after seven days",
-      "existing signup behavior remains unchanged"
+      {
+        "id": "happy-path",
+        "description": "admins can invite users by email",
+        "evidence": [
+          "intent-browser#happy-path",
+          "intent-device#happy-path"
+        ]
+      },
+      {
+        "id": "authorization",
+        "description": "non-admins cannot invite users",
+        "evidence": [
+          "api-requests#unauthorized-invitation",
+          "intent-browser#authorization",
+          "intent-device#authorization"
+        ]
+      },
+      {
+        "id": "duplicate-submission",
+        "description": "duplicate invitations do not create duplicate pending invitations",
+        "evidence": [
+          "intent-browser#duplicate-submission",
+          "intent-device#duplicate-submission"
+        ]
+      },
+      {
+        "id": "expiration",
+        "description": "invitations expire after seven days",
+        "evidence": [
+          "intent-browser#expiration",
+          "intent-device#expiration"
+        ]
+      },
+      {
+        "id": "regression",
+        "description": "existing signup behavior remains unchanged",
+        "evidence": [
+          "playwright-ui",
+          "intent-browser#regression",
+          "intent-device#regression"
+        ]
+      }
     ],
     "affected_surfaces": [
       "team-management",
@@ -41,13 +78,15 @@
     "approval": {
       "status": "approved",
       "approved_by": "demo-product-owner",
-      "approved_at": "2026-08-25T08:00:00.000Z"
+      "approved_at": "2026-08-25T04:00:00.000Z",
+      "content_sha256": "b7a23e120cce88ebf9248383fb98cbd16e5d4a85bad911c58200de5b96e8c4f6",
+      "method": "local"
     }
   },
   "plan": {
     "version": 1,
     "contract_id": "organization-invitations",
-    "created_at": "2026-08-25T05:23:50.411Z",
+    "created_at": "2026-08-25T07:34:28.106Z",
     "changed_files": [
       "src/worker.ts",
       "src/client.tsx"
@@ -77,11 +116,11 @@
         "changed files matched src/worker.ts, src/client.tsx, src/domain.ts, src/schema.ts"
       ],
       "surface:authentication": [
-        "changed files matched src/domain.ts, src/client.tsx"
+        "changed files matched src/domain.ts, src/client.tsx",
+        "dependency of surface team-management"
       ],
       "typecheck": [
         "required by surface team-management",
-        "required by dependency team-management -> authentication",
         "required by surface authentication",
         "changed files matched check scope",
         "selected for contract risk authorization",
@@ -89,7 +128,6 @@
       ],
       "unit-tests": [
         "required by surface team-management",
-        "required by dependency team-management -> authentication",
         "required by surface authentication",
         "selected for contract risk authorization",
         "explicitly required by approved contract"
@@ -105,7 +143,6 @@
       ],
       "playwright-ui": [
         "required by surface team-management",
-        "required by dependency team-management -> authentication",
         "required by surface authentication",
         "changed files matched verifier scope",
         "selected for contract risk mobile ui",
@@ -113,7 +150,6 @@
       ],
       "api-requests": [
         "required by surface team-management",
-        "required by dependency team-management -> authentication",
         "required by surface authentication",
         "changed files matched verifier scope",
         "selected for contract risk authorization",
@@ -125,7 +161,6 @@
       ],
       "intent-browser": [
         "required by surface team-management",
-        "required by dependency team-management -> authentication",
         "required by surface authentication",
         "changed files matched verifier scope",
         "selected for contract risk authorization",
@@ -133,7 +168,6 @@
       ],
       "intent-device": [
         "required by surface team-management",
-        "required by dependency team-management -> authentication",
         "required by surface authentication",
         "changed files matched verifier scope",
         "selected for contract risk mobile ui",
@@ -144,53 +178,124 @@
   "implementation": {
     "changed_files": 2
   },
+  "provenance": {
+    "repository": {
+      "head_sha": "25080f6f14952e5c8312767fc36952ee3474a4f3",
+      "branch": "main",
+      "dirty": true,
+      "changed_files_source": "explicit",
+      "base_sha": null
+    },
+    "digests": {
+      "contract_sha256": "a78dd4d5ad86f919ffd665ecd61bb8571816dca2ef59b081801cbb6eebccd91e",
+      "policy_sha256": "ce3d412a65f1c7b780116358b50ee63ab1cd0f3c73622cef9f5942bb0547683a",
+      "plan_sha256": "e0c7d95631915295874a3a38d9ee6b30e0573f19c85b0e0f92d22c8916dcd5ca",
+      "change_set_sha256": "bf906672942deba40b15d2e4f1c7cb46cd4839af28d645f163cf0e35566bc9d4"
+    },
+    "runtime": {
+      "trust_version": "0.1.0",
+      "node": "v22.22.3",
+      "platform": "darwin",
+      "arch": "arm64"
+    },
+    "target": {
+      "preview_origin": "http://127.0.0.1:4317"
+    }
+  },
   "evidence": [
     {
       "id": "change-contract-approval",
+      "source_id": "change-contract-approval",
       "category": "plan",
       "status": "verified",
-      "summary": "Change contract was approved before verification."
+      "summary": "Change contract was approved by demo-product-owner before verification."
+    },
+    {
+      "id": "change-set-authority",
+      "source_id": "change-set-authority",
+      "category": "plan",
+      "status": "verified",
+      "summary": "Repository policy allows an explicit fixture change set."
+    },
+    {
+      "id": "change-set-presence",
+      "source_id": "change-set-presence",
+      "category": "plan",
+      "status": "verified",
+      "summary": "The change set contains 2 canonical repository-relative path(s)."
+    },
+    {
+      "id": "report-attestation",
+      "source_id": "report-attestation",
+      "category": "plan",
+      "status": "not_applicable",
+      "summary": "Repository policy does not require report attestation."
+    },
+    {
+      "id": "contract-policy",
+      "source_id": "contract-policy",
+      "category": "plan",
+      "status": "verified",
+      "summary": "Change contract is complete and resolves against repository policy."
     },
     {
       "id": "client-build",
+      "source_id": "client-build",
       "category": "static",
       "status": "verified",
       "summary": "Preact client build passed.",
       "command": "pnpm build",
-      "duration_ms": 617,
+      "duration_ms": 554,
       "stdout": "",
-      "stderr": "$ pnpm build:client\n$ esbuild src/client.tsx --bundle --format=esm --sourcemap --outfile=public/app.js\n\n  public/app.js       35.5kb\n  public/app.js.map  191.6kb\n\n⚡ Done in 8ms\n"
+      "stderr": "$ pnpm build:client\n$ esbuild src/client.tsx --bundle --format=esm --sourcemap --outfile=public/app.js\n\n  public/app.js       35.5kb\n  public/app.js.map  191.6kb\n\n⚡ Done in 8ms\n",
+      "measurements": {
+        "attempt": 1,
+        "max_attempts": 1
+      }
     },
     {
       "id": "typecheck",
+      "source_id": "typecheck",
       "category": "static",
       "status": "verified",
       "summary": "TypeScript passed.",
       "command": "pnpm --dir ../.. typecheck",
-      "duration_ms": 447,
+      "duration_ms": 475,
       "stdout": "",
-      "stderr": "$ tsc --noEmit\n"
+      "stderr": "$ tsc --noEmit\n",
+      "measurements": {
+        "attempt": 1,
+        "max_attempts": 1
+      }
     },
     {
       "id": "unit-tests",
+      "source_id": "unit-tests",
       "category": "test",
       "status": "verified",
       "summary": "Unit tests passed.",
       "command": "pnpm test",
-      "duration_ms": 638,
-      "stdout": "\n RUN  v4.1.11 /Users/jovi/Documents/ChatGPT/verification-layer/examples/demo-app\n\n\n Test Files  1 passed (1)\n      Tests  3 passed (3)\n   Start at  07:23:51\n   Duration  119ms (transform 16ms, setup 0ms, import 24ms, tests 2ms, environment 0ms)\n\n",
-      "stderr": "$ vitest run test\n"
+      "duration_ms": 643,
+      "stdout": "\n RUN  v4.1.11 /Users/jovi/Documents/ChatGPT/verification-layer/examples/demo-app\n\n\n Test Files  1 passed (1)\n      Tests  3 passed (3)\n   Start at  09:34:34\n   Duration  120ms (transform 15ms, setup 0ms, import 25ms, tests 2ms, environment 0ms)\n\n",
+      "stderr": "$ vitest run test\n",
+      "measurements": {
+        "attempt": 1,
+        "max_attempts": 1
+      }
     },
     {
       "id": "demo-client-bundle",
+      "source_id": "demo-client-bundle",
       "category": "invariant",
       "status": "verified",
-      "summary": "Preact client bundle: 36304 bytes within threshold.",
+      "summary": "Preact client bundle: 36304 bytes within threshold on attempt 1.",
       "command": "pnpm size",
-      "duration_ms": 293,
+      "duration_ms": 292,
       "stdout": "{\"value\":36304,\"unit\":\"bytes\",\"file\":\"public/app.js\"}\n",
       "stderr": "$ node scripts/measure-bundle.mjs\n",
       "measurements": {
+        "attempt": 1,
+        "max_attempts": 1,
         "current": 36304,
         "baseline": 40000,
         "max": 60000,
@@ -200,11 +305,11 @@
     },
     {
       "id": "api-requests:health",
+      "source_id": "api-requests",
       "category": "request",
       "status": "verified",
       "summary": "GET /api/health satisfied its response contract.",
-      "duration_ms": 23,
-      "stdout": "{\"ok\":true,\"variant\":\"broken\"}",
+      "duration_ms": 17,
       "measurements": {
         "status": 200,
         "response_bytes": 30,
@@ -213,11 +318,11 @@
     },
     {
       "id": "api-requests:unauthorized-invitation",
+      "source_id": "api-requests",
       "category": "request",
       "status": "verified",
       "summary": "POST /api/invitations satisfied its response contract.",
-      "duration_ms": 5,
-      "stdout": "{\"error\":\"Only administrators can invite members.\"}",
+      "duration_ms": 7,
       "measurements": {
         "status": 403,
         "response_bytes": 51
@@ -225,10 +330,11 @@
     },
     {
       "id": "agent-browser:intent-browser:happy-path",
+      "source_id": "intent-browser",
       "category": "qa",
       "status": "verified",
       "summary": "An administrator invited a new user through the running UI.",
-      "duration_ms": 216,
+      "duration_ms": 243,
       "measurements": {
         "final_url": "http://127.0.0.1:4317/",
         "console_errors": 0,
@@ -241,10 +347,11 @@
     },
     {
       "id": "agent-browser:intent-browser:authorization",
+      "source_id": "intent-browser",
       "category": "qa",
       "status": "verified",
       "summary": "A non-admin was denied and no invitation was created.",
-      "duration_ms": 187,
+      "duration_ms": 184,
       "measurements": {
         "final_url": "http://127.0.0.1:4317/",
         "console_errors": 1,
@@ -257,10 +364,11 @@
     },
     {
       "id": "agent-browser:intent-browser:duplicate-submission",
+      "source_id": "intent-browser",
       "category": "qa",
       "status": "failed",
       "summary": "Duplicate submission counts were sequential=2, concurrent=2.",
-      "duration_ms": 297,
+      "duration_ms": 285,
       "measurements": {
         "sequential_pending_invitations": 2,
         "concurrent_pending_invitations": 2,
@@ -275,12 +383,13 @@
     },
     {
       "id": "agent-browser:intent-browser:expiration",
+      "source_id": "intent-browser",
       "category": "qa",
       "status": "verified",
       "summary": "An expired invitation was rejected in the acceptance journey.",
-      "duration_ms": 126,
+      "duration_ms": 109,
       "measurements": {
-        "final_url": "http://127.0.0.1:4317/accept/bc6e98d2-cfee-467a-bc7e-868266bb544b",
+        "final_url": "http://127.0.0.1:4317/accept/1931d1c0-45e0-45d2-ba05-6e502dba50ee",
         "console_errors": 1,
         "failed_requests": 0,
         "http_error_responses": 1
@@ -291,10 +400,11 @@
     },
     {
       "id": "agent-browser:intent-browser:regression",
+      "source_id": "intent-browser",
       "category": "qa",
       "status": "verified",
       "summary": "The existing signup surface remained reachable and interactive.",
-      "duration_ms": 82,
+      "duration_ms": 99,
       "measurements": {
         "final_url": "http://127.0.0.1:4317/signup",
         "console_errors": 0,
@@ -307,10 +417,11 @@
     },
     {
       "id": "agent-device:intent-device:mobile-390x844:happy-path",
+      "source_id": "intent-device",
       "category": "device",
       "status": "verified",
       "summary": "An administrator invited a new user through the running UI.",
-      "duration_ms": 202,
+      "duration_ms": 224,
       "measurements": {
         "final_url": "http://127.0.0.1:4317/",
         "console_errors": 0,
@@ -323,10 +434,11 @@
     },
     {
       "id": "agent-device:intent-device:mobile-390x844:authorization",
+      "source_id": "intent-device",
       "category": "device",
       "status": "verified",
       "summary": "A non-admin was denied and no invitation was created.",
-      "duration_ms": 161,
+      "duration_ms": 163,
       "measurements": {
         "final_url": "http://127.0.0.1:4317/",
         "console_errors": 1,
@@ -339,10 +451,11 @@
     },
     {
       "id": "agent-device:intent-device:mobile-390x844:duplicate-submission",
+      "source_id": "intent-device",
       "category": "device",
       "status": "failed",
       "summary": "Duplicate submission counts were sequential=2, concurrent=2.",
-      "duration_ms": 256,
+      "duration_ms": 247,
       "measurements": {
         "sequential_pending_invitations": 2,
         "concurrent_pending_invitations": 2,
@@ -357,12 +470,13 @@
     },
     {
       "id": "agent-device:intent-device:mobile-390x844:expiration",
+      "source_id": "intent-device",
       "category": "device",
       "status": "verified",
       "summary": "An expired invitation was rejected in the acceptance journey.",
-      "duration_ms": 74,
+      "duration_ms": 80,
       "measurements": {
-        "final_url": "http://127.0.0.1:4317/accept/a79e5afa-6f3c-47b5-aa44-5abce00267d0",
+        "final_url": "http://127.0.0.1:4317/accept/41e1b45a-7024-4f75-8961-b83fc6990bde",
         "console_errors": 1,
         "failed_requests": 0,
         "http_error_responses": 1
@@ -373,10 +487,11 @@
     },
     {
       "id": "agent-device:intent-device:mobile-390x844:regression",
+      "source_id": "intent-device",
       "category": "device",
       "status": "verified",
       "summary": "The existing signup surface remained reachable and interactive.",
-      "duration_ms": 62,
+      "duration_ms": 69,
       "measurements": {
         "final_url": "http://127.0.0.1:4317/signup",
         "console_errors": 0,
@@ -389,10 +504,11 @@
     },
     {
       "id": "agent-device:intent-device:mobile-390x844:mobile-journey",
+      "source_id": "intent-device",
       "category": "device",
       "status": "verified",
       "summary": "An administrator invited a new user through the running UI.",
-      "duration_ms": 176,
+      "duration_ms": 160,
       "measurements": {
         "final_url": "http://127.0.0.1:4317/",
         "console_errors": 0,
@@ -405,33 +521,122 @@
     },
     {
       "id": "playwright-ui",
+      "source_id": "playwright-ui",
       "category": "e2e",
       "status": "verified",
       "summary": "Native Playwright suite passed.",
       "command": "../../node_modules/.bin/playwright test --config playwright.config.ts",
-      "duration_ms": 1001,
-      "stdout": "\nRunning 2 tests using 1 worker\n\n  ✓  1 e2e/smoke.pw.ts:3:1 › renders the invitation product surface (166ms)\n  ✓  2 e2e/smoke.pw.ts:9:1 › exposes a healthy Worker API (35ms)\n\n  2 passed (658ms)\n",
-      "stderr": "(node:94677) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+      "duration_ms": 996,
+      "stdout": "\nRunning 2 tests using 1 worker\n\n  ✓  1 e2e/smoke.pw.ts:3:1 › renders the invitation product surface (163ms)\n  ✓  2 e2e/smoke.pw.ts:9:1 › exposes a healthy Worker API (34ms)\n\n  2 passed (636ms)\n",
+      "stderr": "(node:27056) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n",
+      "measurements": {
+        "attempt": 1,
+        "max_attempts": 1
+      }
     },
     {
       "id": "trust-cli:version",
+      "source_id": "trust-cli",
       "category": "cli",
       "status": "verified",
       "summary": "CLI mission version passed.",
       "command": "node --import tsx ../../packages/cli/src/index.ts --version",
-      "duration_ms": 478,
+      "duration_ms": 572,
       "stdout": "trust/0.1.0 darwin-arm64 node-v22.22.3\n",
-      "stderr": ""
+      "stderr": "",
+      "measurements": {
+        "attempt": 1,
+        "max_attempts": 1
+      }
     },
     {
       "id": "trust-cli:selective-plan",
+      "source_id": "trust-cli",
       "category": "cli",
       "status": "verified",
       "summary": "CLI mission selective-plan passed.",
       "command": "node --import tsx ../../packages/cli/src/index.ts plan change-contract.yaml --config trust.yaml --changed src/worker.ts,src/client.tsx --output .trust/runs/cli-plan.json",
-      "duration_ms": 496,
-      "stdout": "Intent: Add organization invitations without weakening authorization or existing signup behavior.\nApproval: approved\nBehaviors: 5\nSurfaces: team-management, authentication\nRisks: authorization, state integrity, mobile ui\nRequired evidence: typecheck, unit-tests, demo-client-bundle, playwright-ui, api-requests, trust-cli, intent-browser, intent-device\n\nSelected: client-build, typecheck, unit-tests\nInvariants: demo-client-bundle\nVerifiers: api-requests, intent-browser, intent-device, playwright-ui, trust-cli\nQA: not required\n",
-      "stderr": ""
+      "duration_ms": 538,
+      "stdout": "Intent: Add organization invitations without weakening authorization or existing signup behavior.\nApproval: approved\nAuthority: local\nBehaviors: happy-path, authorization, duplicate-submission, expiration, regression\nSurfaces: team-management, authentication\nRisks: authorization, state integrity, mobile ui\nRequired evidence: typecheck, unit-tests, demo-client-bundle, playwright-ui, api-requests, trust-cli, intent-browser, intent-device\n\nSelected: client-build, typecheck, unit-tests\nInvariants: demo-client-bundle\nVerifiers: api-requests, intent-browser, intent-device, playwright-ui, trust-cli\nQA: not required\nChange set: explicit (2 file(s))\n",
+      "stderr": "",
+      "measurements": {
+        "attempt": 1,
+        "max_attempts": 1
+      }
+    },
+    {
+      "id": "change-set-stability",
+      "source_id": "change-set-stability",
+      "category": "plan",
+      "status": "verified",
+      "summary": "Changed-file contents remained stable throughout evidence execution."
+    },
+    {
+      "id": "repository-head-stability",
+      "source_id": "repository-head-stability",
+      "category": "plan",
+      "status": "verified",
+      "summary": "Git HEAD remained stable throughout evidence execution."
+    },
+    {
+      "id": "claim:happy-path",
+      "source_id": "claim:happy-path",
+      "category": "claim",
+      "status": "verified",
+      "summary": "Expected behavior verified: admins can invite users by email",
+      "measurements": {
+        "evidence_sources": "intent-browser#happy-path,intent-device#happy-path",
+        "supporting_results": 2,
+        "missing_sources": ""
+      }
+    },
+    {
+      "id": "claim:authorization",
+      "source_id": "claim:authorization",
+      "category": "claim",
+      "status": "verified",
+      "summary": "Expected behavior verified: non-admins cannot invite users",
+      "measurements": {
+        "evidence_sources": "api-requests#unauthorized-invitation,intent-browser#authorization,intent-device#authorization",
+        "supporting_results": 3,
+        "missing_sources": ""
+      }
+    },
+    {
+      "id": "claim:duplicate-submission",
+      "source_id": "claim:duplicate-submission",
+      "category": "claim",
+      "status": "failed",
+      "summary": "Expected behavior was not established: duplicate invitations do not create duplicate pending invitations",
+      "measurements": {
+        "evidence_sources": "intent-browser#duplicate-submission,intent-device#duplicate-submission",
+        "supporting_results": 2,
+        "missing_sources": ""
+      }
+    },
+    {
+      "id": "claim:expiration",
+      "source_id": "claim:expiration",
+      "category": "claim",
+      "status": "verified",
+      "summary": "Expected behavior verified: invitations expire after seven days",
+      "measurements": {
+        "evidence_sources": "intent-browser#expiration,intent-device#expiration",
+        "supporting_results": 2,
+        "missing_sources": ""
+      }
+    },
+    {
+      "id": "claim:regression",
+      "source_id": "claim:regression",
+      "category": "claim",
+      "status": "verified",
+      "summary": "Expected behavior verified: existing signup behavior remains unchanged",
+      "measurements": {
+        "evidence_sources": "playwright-ui,intent-browser#regression,intent-device#regression",
+        "supporting_results": 3,
+        "missing_sources": ""
+      }
     }
   ],
   "qa_missions": [
@@ -507,6 +712,11 @@
       "type": "regression-test",
       "description": "Add a deterministic regression test covering: Duplicate submission counts were sequential=2, concurrent=2.",
       "source_evidence": "agent-device:intent-device:mobile-390x844:duplicate-submission"
+    },
+    {
+      "type": "regression-test",
+      "description": "Preserve the failure detected by claim:duplicate-submission as a focused regression test.",
+      "source_evidence": "claim:duplicate-submission"
     },
     {
       "type": "knowledge",
