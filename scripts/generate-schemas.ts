@@ -7,6 +7,8 @@ import {
   doctorResultSchema,
   incidentSchema,
   reportAttestationRequestSchema,
+  startResultSchema,
+  statusResultSchema,
   trustConfigSchema,
   trustReportSchema,
   verificationPlanSchema,
@@ -54,6 +56,18 @@ const definitions = [
     id: "urn:executable-trust:v1:doctor",
     title: "Executable Trust doctor result",
     schema: doctorResultSchema,
+  },
+  {
+    file: "status.schema.json",
+    id: "urn:executable-trust:v1:status",
+    title: "Executable Trust repository status",
+    schema: statusResultSchema,
+  },
+  {
+    file: "start.schema.json",
+    id: "urn:executable-trust:v1:start",
+    title: "Executable Trust guided start result",
+    schema: startResultSchema,
   },
   {
     file: "incident.schema.json",

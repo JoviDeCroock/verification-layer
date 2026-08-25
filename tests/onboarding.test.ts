@@ -44,6 +44,14 @@ describe("ridiculously easy onboarding", () => {
       await git(repository, ["commit", "-m", "baseline"]);
       await writeFile(path.join(repository, "feature.js"), "export const enabled = true;\n");
 
+      const initialStatus = await trust(["status", repository, "--format", "json"]);
+      expect(initialStatus.exitCode, initialStatus.stderr).toBe(0);
+      expect(JSON.parse(initialStatus.stdout)).toMatchObject({
+        version: 1,
+        setup: { policy: null, policy_mode: "none" },
+        next: { action: "start" },
+      });
+
       const started = await trust([
         "start",
         repository,
@@ -72,14 +80,61 @@ describe("ridiculously easy onboarding", () => {
         "runs/\nkeys/*.private.pem\n",
       );
 
+      const localStatus = await trust(["status", repository, "--format", "json"]);
+      expect(localStatus.exitCode, localStatus.stderr).toBe(0);
+      expect(JSON.parse(localStatus.stdout)).toMatchObject({
+        setup: { policy_mode: "local" },
+        latest_run: { verdict: "trusted", assurance: "local" },
+        next: { action: "enable_github" },
+      });
+
+      const inspected = await trust([
+        "inspect",
+        repository,
+        "--config",
+        path.join(repository, "trust.yaml"),
+        "--format",
+        "json",
+      ]);
+      expect(inspected.exitCode, inspected.stderr).toBe(0);
+      expect(JSON.parse(inspected.stdout)).toMatchObject({
+        version: 1,
+        discovery: { name: "starter", packageManager: "npm" },
+        graph: [expect.objectContaining({ surface: "repository", evidence: ["test"] })],
+      });
+
+      const planned = await trust([
+        "plan",
+        path.join(repository, ".trust", "contracts", "current.yaml"),
+        "--config",
+        path.join(repository, "trust.yaml"),
+        "--format",
+        "json",
+        "--no-write",
+      ]);
+      expect(planned.exitCode, planned.stderr).toBe(0);
+      expect(JSON.parse(planned.stdout)).toMatchObject({
+        version: 1,
+        valid: true,
+        plan: { selected_checks: ["test"] },
+        output: null,
+      });
+
       const repeated = await trust([
         "start",
         repository,
         "--intent",
         "Users can enable the feature safely",
+        "--format",
+        "json",
       ]);
       expect(repeated.exitCode, repeated.stderr).toBe(0);
-      expect(repeated.stdout).toContain("TRUSTED · LOCAL ASSURANCE");
+      expect(JSON.parse(repeated.stdout)).toMatchObject({
+        version: 1,
+        status: "completed",
+        created_policy: false,
+        report: { verdict: "trusted", assurance: { level: "local" } },
+      });
       const repeatedReport = await loadTrustReport(
         path.join(repository, ".trust", "runs", "latest", "report.json"),
       );
@@ -105,6 +160,39 @@ describe("ridiculously easy onboarding", () => {
       expect(explained.exitCode, explained.stderr).toBe(0);
       expect(explained.stdout).toContain("TRUST EXPLAIN — test");
       expect(explained.stdout).toContain("Command: npm run test");
+
+      const explainedJson = await trust([
+        "explain",
+        "test",
+        "--report",
+        path.join(repository, ".trust", "runs", "latest", "report.json"),
+        "--format",
+        "json",
+      ]);
+      expect(explainedJson.exitCode, explainedJson.stderr).toBe(0);
+      expect(JSON.parse(explainedJson.stdout)).toMatchObject({
+        version: 1,
+        query: "test",
+        evidence: [expect.objectContaining({ source_id: "test", status: "verified" })],
+      });
+
+      const verifiedJson = await trust([
+        "verify",
+        "--config",
+        path.join(repository, "trust.yaml"),
+        "--contract",
+        path.join(repository, ".trust", "contracts", "current.yaml"),
+        "--output",
+        path.join(repository, ".trust", "runs", "automation"),
+        "--format",
+        "json",
+        "--no-ci-output",
+      ]);
+      expect(verifiedJson.exitCode, verifiedJson.stderr).toBe(0);
+      expect(JSON.parse(verifiedJson.stdout)).toMatchObject({
+        verdict: "trusted",
+        assurance: { level: "local" },
+      });
 
       const localDoctor = await trust([
         "doctor",
@@ -155,6 +243,13 @@ describe("ridiculously easy onboarding", () => {
         readiness: { trial: true, local: true, attested: true },
       });
 
+      const enforcedStatus = await trust(["status", repository, "--format", "json"]);
+      expect(enforcedStatus.exitCode, enforcedStatus.stderr).toBe(0);
+      expect(JSON.parse(enforcedStatus.stdout)).toMatchObject({
+        setup: { policy_mode: "attested", github_workflow: expect.any(String) },
+        next: { action: "check_attested_readiness" },
+      });
+
       const refusedDowngrade = await trust([
         "start",
         repository,
@@ -166,7 +261,7 @@ describe("ridiculously easy onboarding", () => {
     } finally {
       await rm(repository, { recursive: true, force: true });
     }
-  });
+  }, 15_000);
 
   it("creates reusable policy on a clean repository without verifying its own artifacts", async () => {
     const repository = await mkdtemp(path.join(os.tmpdir(), "trust-clean-start-"));
@@ -188,9 +283,17 @@ describe("ridiculously easy onboarding", () => {
         repository,
         "--intent",
         "Users can enable the feature safely",
+        "--format",
+        "json",
       ]);
       expect(clean.exitCode, clean.stderr).toBe(0);
-      expect(clean.stdout).toContain("No Git changes are currently available to verify.");
+      expect(JSON.parse(clean.stdout)).toMatchObject({
+        version: 1,
+        status: "no_changes",
+        created_policy: true,
+        change_set: [],
+        next: { reason: "No Git changes are currently available to verify." },
+      });
       expect(await readFile(path.join(repository, "trust.yaml"), "utf8")).toContain(
         "allow_local_approvals: true",
       );

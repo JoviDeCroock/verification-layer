@@ -581,6 +581,76 @@ export const doctorResultSchema = z.object({
   problems: z.array(z.string()),
 });
 
+export const statusResultSchema = z.object({
+  version: z.literal(1),
+  repository: z.object({
+    root: z.string().min(1),
+    name: z.string().min(1),
+    git: z.object({
+      initialized: z.boolean(),
+      head_sha: z.string().nullable(),
+      branch: z.string().nullable(),
+      dirty: z.boolean(),
+      changed_files: z.array(z.string()),
+    }),
+  }),
+  setup: z.object({
+    policy: z.string().nullable(),
+    policy_mode: z.enum(["none", "local", "attested", "custom"]),
+    contract: z.string().nullable(),
+    report: z.string().nullable(),
+    github_workflow: z.string().nullable(),
+  }),
+  evidence: z
+    .object({
+      checks: z.number().int().nonnegative(),
+      invariants: z.number().int().nonnegative(),
+      verifiers: z.number().int().nonnegative(),
+      surfaces: z.number().int().nonnegative(),
+    })
+    .nullable(),
+  latest_run: z
+    .object({
+      verdict: z.enum(["trusted", "not_trusted", "insufficient_evidence"]),
+      assurance: assuranceLevelSchema,
+      created_at: z.string().datetime(),
+      run_id: z.string().min(1),
+    })
+    .nullable(),
+  problems: z.array(z.string()),
+  next: z.object({
+    action: z.string().min(1),
+    command: z.string().min(1),
+    reason: z.string().min(1),
+  }),
+});
+
+export type StatusResult = z.infer<typeof statusResultSchema>;
+
+export const startResultSchema = z.discriminatedUnion("status", [
+  z.object({
+    version: z.literal(1),
+    status: z.literal("no_changes"),
+    repository: z.object({ root: z.string().min(1), name: z.string().min(1) }),
+    policy: z.string().min(1),
+    created_policy: z.boolean(),
+    change_set: z.array(z.string()).length(0),
+    next: z.object({ command: z.string().min(1), reason: z.string().min(1) }),
+  }),
+  z.object({
+    version: z.literal(1),
+    status: z.literal("completed"),
+    repository: z.object({ root: z.string().min(1), name: z.string().min(1) }),
+    policy: z.string().min(1),
+    created_policy: z.boolean(),
+    contract: z.string().min(1),
+    report_file: z.string().min(1),
+    report: trustReportSchema,
+  }),
+]);
+
+export type StartResult = z.infer<typeof startResultSchema>;
+
 export const reportAttestationRequestSchema = z
   .object({
     version: z.literal(1),

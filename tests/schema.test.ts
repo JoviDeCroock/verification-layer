@@ -34,6 +34,8 @@ describe("JSON Schema DX", () => {
         "doctor.schema.json",
         "incident.schema.json",
         "report.schema.json",
+        "start.schema.json",
+        "status.schema.json",
         "trust.schema.json",
         "verification-plan.schema.json",
       ]);
