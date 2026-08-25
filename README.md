@@ -20,6 +20,40 @@ finding or incident -> approval-required learning proposal
 ## Try it
 
 ```bash
+npx executable-trust-layer@latest try
+```
+
+That shows the bundled broken-versus-fixed proof without configuring a repository. To get a real
+local verdict from an existing Git repository, provide the one fact discovery cannot safely infer:
+
+```bash
+npx executable-trust-layer@latest start \
+  --intent "Describe the user-visible outcome"
+```
+
+With no subcommand, the CLI enters the same guided start flow and asks for intent interactively.
+It discovers safe structured package scripts, creates a local policy, derives the Git change set,
+generates and locally approves a contract, runs the selected evidence, and prints a concise verdict.
+No hand-edited YAML, keys, schema export, or shell-command permission is required for the first run.
+Generated run artifacts and private keys are ignored through `.trust/.gitignore`; the current
+contract remains visible so it can be reviewed and committed for CI.
+
+The result explicitly says `LOCAL ASSURANCE`; it is useful repository evidence, not protected merge
+authority. Upgrade the same policy and newest generated contract with:
+
+```bash
+trust enable github
+```
+
+That creates separate expiring approver and reporter identities, re-signs the contract, writes the
+isolated GitHub attestation workflow, and prints the exact secret, policy variable, environment, and
+required status check to configure. `trust doctor` reports independent `trial`, `local`, and
+`attested` readiness; CI requires `attested`. Guided GitHub enablement currently supports npm and
+pnpm projects and fails with a recovery command for other package managers.
+
+From a source checkout, run the live end-to-end demo with:
+
+```bash
 pnpm install
 pnpm exec playwright install chromium
 
@@ -58,7 +92,10 @@ readiness result, counts, warnings, and blockers as a stable machine-readable co
 
 ```text
 trust init [repository]       discover verification and generate trust YAML
+trust try                     show the bundled broken-versus-fixed proof
+trust start [repository]      go from one intent sentence to a local verdict
 trust setup [repository]      bootstrap strict policy and separate expiring keys
+trust enable github           upgrade local setup to protected merge enforcement
 trust authority:keygen        generate an Ed25519 authority identity
 trust authority:register      register an approver or reporter public key
 trust authority:list          inspect fingerprints and key lifecycle state
@@ -73,6 +110,7 @@ trust inspect [repository]    print discovery and the configured graph
 trust plan <contract>         validate intent and select relevant evidence
 trust verify                  execute selected checks, invariants, and QA
 trust report <report.json>    render terminal, Markdown, or JSON output
+trust explain [evidence]      explain the latest verdict or one evidence result
 trust report:verify           verify report integrity, policy, and signature
 trust report:attest           sign a completed report in a separate trust context
 trust audit:append            append a signed report to a hash-chained journal
@@ -82,7 +120,7 @@ trust learn <report.json>     propose reusable verification improvements
 trust learn-incident <file>   turn an incident model into proposals
 ```
 
-`trust plan` and `trust verify` derive changed files from Git by default. Pass `--base <ref>`
+`trust plan`, `trust start`, and `trust verify` derive changed files from Git by default. Pass `--base <ref>`
 to include committed changes since a merge base. `--changed` remains available for isolated fixtures
 such as the broken-versus-fixed demo and is recorded as an explicit change-set source in provenance.
 
@@ -127,7 +165,9 @@ required reason instead of deleting trust history. Approval and report verificat
 lifecycle at signing time, while current revocation immediately fails verification under the updated
 policy digest. `trust doctor` rejects deployments with no active authority and warns before expiry.
 
-Generated policies deny shell-backed checks and full environment inheritance. Repositories that
+Discovered package scripts use structured executable-and-argument checks, so generated policies can
+run them without granting shell authority. Generated policies still deny shell-backed checks and
+full environment inheritance. Repositories that
 trust their checked-in command policy may opt into `execution.allow_shell_commands`; structured CLI
 and Playwright verifiers receive only a small process environment unless
 `execution.inherit_environment` is explicitly enabled. `trust doctor` reports every fixture or

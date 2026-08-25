@@ -1,5 +1,12 @@
 # GitHub Actions deployment
 
+For the guided path, run `trust enable github` after a successful `trust start`. It creates the
+authority identities, signs the current generated contract, writes the workflow, and prints the
+remaining GitHub secret, repository variable, protected environment, and status-check steps. The
+guided generator currently supports npm and pnpm projects. It rejects other detected package
+managers instead of guessing an unsafe install strategy. The manual commands below remain available
+for organizations that bring their own authority and paths.
+
 Generate the workflow only after the approved contract and trusted reporter public key are present:
 
 ```sh

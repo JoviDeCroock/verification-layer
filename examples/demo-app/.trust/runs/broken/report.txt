@@ -8,12 +8,13 @@ Plan
 
 Implementation
 2 changed file(s)
-Commit: b822ae5ffe7f
+Commit: 38cbc7ed1205
 Branch: main
 Working tree: dirty
 Change set: explicit
 Snapshot: bf906672942d
 Attestation: none
+Assurance: trial
 
 Behavior claims
 ✓ Expected behavior verified: admins can invite users by email

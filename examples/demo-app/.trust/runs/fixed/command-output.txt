@@ -1,81 +1,9 @@
-CHANGE VERIFICATION
+TRUSTED · TRIAL ASSURANCE
 
-Intent
 Add organization invitations without weakening authorization or existing signup behavior.
 
-Plan
-✓ approved
+5/5 behaviors established · 20/20 executable results verified
 
-Implementation
-2 changed file(s)
-Commit: b822ae5ffe7f
-Branch: main
-Working tree: dirty
-Change set: explicit
-Snapshot: bf906672942d
-Attestation: none
-
-Behavior claims
-✓ Expected behavior verified: admins can invite users by email
-✓ Expected behavior verified: non-admins cannot invite users
-✓ Expected behavior verified: duplicate invitations do not create duplicate pending invitations
-✓ Expected behavior verified: invitations expire after seven days
-✓ Expected behavior verified: existing signup behavior remains unchanged
-
-Verification
-✓ Change contract was approved by demo-product-owner before verification.
-✓ Repository policy allows an explicit fixture change set.
-✓ The change set contains 2 canonical repository-relative path(s).
-– Repository policy does not require report attestation.
-✓ Change contract is complete and resolves against repository policy.
-✓ Preact client build passed.
-✓ TypeScript passed.
-✓ Unit tests passed.
-✓ Preact client bundle: 36304 bytes within threshold on attempt 1.
-✓ GET /api/health satisfied its response contract.
-✓ POST /api/invitations satisfied its response contract.
-✓ An administrator invited a new user through the running UI.
-✓ A non-admin was denied and no invitation was created.
-✓ Retry and concurrent submission reused one pending invitation.
-✓ An expired invitation was rejected in the acceptance journey.
-✓ The existing signup surface remained reachable and interactive.
-✓ An administrator invited a new user through the running UI.
-✓ A non-admin was denied and no invitation was created.
-✓ Retry and concurrent submission reused one pending invitation.
-✓ An expired invitation was rejected in the acceptance journey.
-✓ The existing signup surface remained reachable and interactive.
-✓ An administrator invited a new user through the running UI.
-✓ Native Playwright suite passed.
-✓ CLI mission version passed.
-✓ CLI mission selective-plan passed.
-✓ Changed-file contents remained stable throughout evidence execution.
-✓ Git HEAD remained stable throughout evidence execution.
-
-QA mission generation
-Deterministic: executable-trust-layer/intent-heuristics@1; no LLM used; 6 mission(s)
-
-QA execution
-Deterministic: trust-demo/playwright-journeys@1; no LLM used
-
-Experiential evidence
-✓ An administrator invited a new user through the running UI.
-✓ A non-admin was denied and no invitation was created.
-✓ Retry and concurrent submission reused one pending invitation.
-✓ An expired invitation was rejected in the acceptance journey.
-✓ The existing signup surface remained reachable and interactive.
-✓ An administrator invited a new user through the running UI.
-✓ A non-admin was denied and no invitation was created.
-✓ Retry and concurrent submission reused one pending invitation.
-✓ An expired invitation was rejected in the acceptance journey.
-✓ The existing signup surface remained reachable and interactive.
-✓ An administrator invited a new user through the running UI.
-
-Unverified assumptions
-! production email delivery was not verified: The demo has no external email provider.
-
-Learning proposals
-+ [knowledge] Document how to verify: production email delivery was not verified: The demo has no external email provider.
-
-VERDICT
-✓ Change satisfies approved intent.
+Report: /Users/jovi/Documents/ChatGPT/verification-layer/examples/demo-app/.trust/runs/fixed/report.json
+Next: run `trust explain` for details or `trust enable github` for attested CI.
 

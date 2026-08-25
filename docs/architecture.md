@@ -21,6 +21,12 @@ The product is a local-first TypeScript trust authority split into focused packa
 - `cli/ci`: escaped GitHub summaries, outputs, annotations, and strict workflow generation.
 - `schemas`: distributable editor contracts generated and drift-checked from the runtime schemas.
 
+The onboarding surface composes those packages without weakening them. `trust start` performs
+discovery, writes a local-only policy, derives the Git change set, creates and locally approves the
+bound contract, invokes the normal verifier, and renders the same report schema used by expert-mode
+commands. `trust enable github` upgrades authority and workflow files rather than maintaining a
+separate simplified verification engine.
+
 The local boundary owns the inspectable specification, contracts, Ed25519 authority, external signer protocol, report attestation, tamper-evident audit journal, graph, runner, provenance capture, and basic QA adapters. A hosted boundary can supply provider-specific key custody, externally governed WORM retention, ephemeral compute, preview provisioning, parallel browsers, durable repository knowledge, organization policy, incident integrations, and cross-repository impact analysis without taking ownership of the local policy format.
 
 The adapter boundary is intentionally local and typed. Hosted execution can schedule the same plan remotely, but it must return the same structured evidence states and may not reinterpret `not_verified` as success. Repository adapters remain separate from the coding agent and receive approved intent rather than an implementation narrative.

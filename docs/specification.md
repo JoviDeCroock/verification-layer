@@ -11,9 +11,22 @@ Every verifier emits exactly one of four states:
 
 Unknowns never become success. A `failed` item rejects the change. A `not_verified` item yields insufficient evidence.
 
+## Assurance levels
+
+Verdict and assurance answer different questions. The verdict says what the evidence established;
+assurance says how strongly the run identity is protected:
+
+- `trial`: an explicit fixture change set or bundled proof;
+- `local`: a Git-derived repository snapshot without protected report attestation; and
+- `attested`: a Git-derived snapshot with a currently trusted Ed25519 reporter signature.
+
+Historical reports without an assurance field remain readable; readers derive the level from
+change-set provenance and attestation. `trust doctor --require trial|local|attested` checks readiness
+for the requested use instead of treating unfinished production deployment as a failed first run.
+
 ## Trust configuration
 
-`trust.yaml` is versioned repository policy. It names knowledge sources, commands, custom invariants, product surfaces, dependencies between surfaces, and QA traversal instructions. Commands remain adapters to existing tools; they do not replace linters, test frameworks, or benchmark suites.
+`trust.yaml` is versioned repository policy. It names knowledge sources, commands, custom invariants, product surfaces, dependencies between surfaces, and QA traversal instructions. Commands remain adapters to existing tools; they do not replace linters, test frameworks, or benchmark suites. Discovered package scripts are represented as structured `executable`, `args`, `cwd`, and `env` values. Legacy shell strings remain supported only behind the explicit shell-command policy exception.
 
 ## Change contract
 
