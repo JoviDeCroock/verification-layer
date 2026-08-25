@@ -19,6 +19,7 @@ describe("release preparation", () => {
       changeset: "changeset",
       version: "changeset version",
       release: "pnpm build:cli && changeset publish",
+      "release:check": "pnpm check && npm --cache .trust/npm-cache pack --dry-run",
     });
     expect(packageJson.devDependencies).toMatchObject({
       "@changesets/changelog-github": "^0.6.0",

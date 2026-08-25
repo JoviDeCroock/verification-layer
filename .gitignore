@@ -6,6 +6,7 @@ dist/
 test-results/
 playwright-report/
 .trust/evals/
+.trust/npm-cache/
 **/.trust/keys/*.private.pem
 examples/demo-app/public/app.js
 examples/demo-app/public/app.js.map

@@ -52,7 +52,7 @@
     "prepack": "pnpm build:cli",
     "prepublishOnly": "pnpm check",
     "release": "pnpm build:cli && changeset publish",
-    "release:check": "pnpm check && npm pack --dry-run",
+    "release:check": "pnpm check && npm --cache .trust/npm-cache pack --dry-run",
     "schemas": "node --import tsx scripts/generate-schemas.ts",
     "schemas:check": "node --import tsx scripts/generate-schemas.ts --check",
     "test": "vitest run --testTimeout=15000",
