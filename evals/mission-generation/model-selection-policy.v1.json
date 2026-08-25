@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "id": "mission-proposal-model-v1",
+  "suite_id": "mission-generation-v1",
+  "suite_sha256": "39e09555fc45b11cf74911035236b83ddcb92c34c4579eaebc09116c064c4fd0",
+  "evaluation_mode": "research_only",
+  "production_default": "deterministic",
+  "pricing": {
+    "checked_at": "2026-08-25",
+    "source_url": "https://developers.openai.com/api/docs/pricing",
+    "service_tier": "standard",
+    "context": "short",
+    "currency": "USD",
+    "per_tokens": 1000000,
+    "cached_input_multiplier": 0.1,
+    "cache_write_input_multiplier": 1.25
+  },
+  "candidates": [
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-terra",
+      "reasoning_effort": "medium",
+      "input_usd_per_million": 2,
+      "output_usd_per_million": 12
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "medium",
+      "input_usd_per_million": 4,
+      "output_usd_per_million": 20
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.6-luna",
+      "reasoning_effort": "medium",
+      "input_usd_per_million": 0.2,
+      "output_usd_per_million": 1.2
+    }
+  ],
+  "gates": {
+    "valid_output_rate": 1,
+    "hard_pass_rate": 0.95,
+    "required_recall": 1,
+    "allowed_precision": 0.98,
+    "risk_accuracy": 0.95,
+    "provenance_rate": 1,
+    "stability": 0.95,
+    "human_reviewed_runs": 24,
+    "human_approval_rate": 0.9,
+    "unique_defects_found": 1,
+    "max_mean_latency_ms": 30000,
+    "min_prompt_cache_hit_rate": 0.5
+  }
+}

@@ -5,6 +5,7 @@ dist/
 .wrangler/
 test-results/
 playwright-report/
+.trust/evals/
 **/.trust/keys/*.private.pem
 examples/demo-app/public/app.js
 examples/demo-app/public/app.js.map
