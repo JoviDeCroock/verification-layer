@@ -245,6 +245,43 @@ describe("trust authority", () => {
     expect(report.verdict).toBe("insufficient_evidence");
   });
 
+  it("does not treat a zero-test command as verified behavior evidence", async () => {
+    const outputDirectory = await mkdtemp(path.join(os.tmpdir(), "trust-empty-tests-"));
+    temporaryDirectories.push(outputDirectory);
+    const emptyTestConfig = config();
+    emptyTestConfig.execution!.allow_shell_commands = false;
+    emptyTestConfig.checks = [
+      {
+        id: "behavior-check",
+        kind: "test",
+        executable: process.execPath,
+        args: ["-e", "console.log('# tests 0')"],
+        cwd: ".",
+        env: {},
+        scope: ["src/**"],
+        tags: [],
+        required: false,
+        timeout_ms: 10_000,
+      },
+    ];
+    const report = await verifyChange({
+      config: emptyTestConfig,
+      contract: contract(),
+      repositoryRoot: process.cwd(),
+      changedFiles: ["src/behavior.ts"],
+      changedFilesSource: "explicit",
+      outputDirectory,
+    });
+    expect(report.evidence).toContainEqual(
+      expect.objectContaining({
+        id: "behavior-check",
+        status: "not_verified",
+        reason: expect.stringContaining("zero tests"),
+      }),
+    );
+    expect(report.verdict).toBe("insufficient_evidence");
+  });
+
   it("requires and verifies a trusted report attestation", async () => {
     const outputDirectory = await mkdtemp(path.join(os.tmpdir(), "trust-attestation-"));
     temporaryDirectories.push(outputDirectory);

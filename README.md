@@ -209,6 +209,9 @@ failure cannot be hidden by a later pass. Ctrl-C propagates cancellation and ter
 process group. `trust reports:prune` requires `--confirm` and only removes directories containing a
 completed `report.json`.
 
+Known zero-test outputs from test and E2E checks are insufficient evidence even when the underlying
+tool exits successfully. A green command that exercised nothing cannot establish user behavior.
+
 `trust audit:append` stores complete signed reports and their policy digests in a single-writer,
 fsynced, hash-chained JSONL journal. It never copies policy adapter values into the journal.
 `audit:verify` validates every link, embedded digest, report signature, semantic claim, and the

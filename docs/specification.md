@@ -10,6 +10,8 @@ Every verifier emits exactly one of four states:
 - `not_verified`: the evidence is required or relevant, but no trustworthy result exists.
 
 Unknowns never become success. A `failed` item rejects the change. A `not_verified` item yields insufficient evidence.
+Test and E2E checks that exit successfully while reporting zero executed tests are `not_verified`,
+not passes; an empty suite cannot establish an approved behavior.
 
 ## Assurance levels
 

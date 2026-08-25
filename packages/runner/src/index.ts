@@ -191,6 +191,21 @@ function categoryFor(kind: TrustConfig["checks"][number]["kind"]): Evidence["cat
   return "static";
 }
 
+function missingTestResultReason(
+  kind: TrustConfig["checks"][number]["kind"],
+  result: CommandResult,
+): string | undefined {
+  if ((kind !== "test" && kind !== "e2e") || result.exitCode !== 0) return undefined;
+  const output = `${result.stdout}\n${result.stderr}`;
+  if (
+    /^# tests 0\s*$/im.test(output) ||
+    /\bno tests? (?:found|ran|collected)\b/i.test(output) ||
+    /\b(?:tests?|test suites):\s*0 total\b/i.test(output)
+  )
+    return "The test command exited successfully but reported that it executed zero tests.";
+  return undefined;
+}
+
 export async function runSelectedChecks(
   config: TrustConfig,
   plan: VerificationPlan,
@@ -226,22 +241,26 @@ export async function runSelectedChecks(
       config.execution?.max_attempts,
       config.execution?.retry_backoff_ms,
     );
-    for (const [index, result] of results.entries())
+    for (const [index, result] of results.entries()) {
+      const missingTestResult = missingTestResultReason(check.kind, result);
       evidence.push({
         id: index === results.length - 1 ? check.id : `${check.id}:attempt-${index + 1}`,
         source_id: check.id,
         category: categoryFor(check.kind),
-        status: result.exitCode === 0 ? "verified" : "failed",
-        summary:
-          result.exitCode === 0
+        status: result.exitCode !== 0 ? "failed" : missingTestResult ? "not_verified" : "verified",
+        summary: missingTestResult
+          ? `${check.label ?? check.id} completed without executing tests.`
+          : result.exitCode === 0
             ? `${check.label ?? check.id} passed${results.length > 1 ? ` on attempt ${index + 1}` : ""}.`
             : `${check.label ?? check.id} failed on attempt ${index + 1}${result.timedOut ? " (timed out)" : result.aborted ? " (cancelled)" : ""}.`,
+        ...(missingTestResult ? { reason: missingTestResult } : {}),
         command: "command" in check ? check.command : [check.executable, ...check.args].join(" "),
         duration_ms: result.durationMs,
         stdout: result.stdout.slice(-12_000),
         stderr: result.stderr.slice(-12_000),
         measurements: { attempt: index + 1, max_attempts: results.length },
       });
+    }
   }
   return evidence;
 }

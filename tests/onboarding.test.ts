@@ -33,14 +33,26 @@ describe("ridiculously easy onboarding", () => {
     try {
       await writeFile(
         path.join(repository, "package.json"),
-        `${JSON.stringify({ name: "starter", scripts: { test: "node --test" } }, null, 2)}\n`,
+        `${JSON.stringify({ name: "starter", type: "module", scripts: { test: "node --test" } }, null, 2)}\n`,
         "utf8",
       );
       await writeFile(path.join(repository, "feature.js"), "export const enabled = false;\n");
+      await writeFile(
+        path.join(repository, "feature.test.js"),
+        [
+          'import assert from "node:assert/strict";',
+          'import test from "node:test";',
+          'import { enabled } from "./feature.js";',
+          "",
+          'test("the feature is enabled", () => assert.equal(enabled, true));',
+          "",
+        ].join("\n"),
+        "utf8",
+      );
       await git(repository, ["init", "--initial-branch=main"]);
       await git(repository, ["config", "user.email", "trust@example.invalid"]);
       await git(repository, ["config", "user.name", "Trust Fixture"]);
-      await git(repository, ["add", "package.json", "feature.js"]);
+      await git(repository, ["add", "package.json", "feature.js", "feature.test.js"]);
       await git(repository, ["commit", "-m", "baseline"]);
       await writeFile(path.join(repository, "feature.js"), "export const enabled = true;\n");
 
@@ -268,14 +280,26 @@ describe("ridiculously easy onboarding", () => {
     try {
       await writeFile(
         path.join(repository, "package.json"),
-        `${JSON.stringify({ name: "clean-starter", scripts: { test: "node --test" } }, null, 2)}\n`,
+        `${JSON.stringify({ name: "clean-starter", type: "module", scripts: { test: "node --test" } }, null, 2)}\n`,
         "utf8",
       );
       await writeFile(path.join(repository, "feature.js"), "export const enabled = false;\n");
+      await writeFile(
+        path.join(repository, "feature.test.js"),
+        [
+          'import assert from "node:assert/strict";',
+          'import test from "node:test";',
+          'import { enabled } from "./feature.js";',
+          "",
+          'test("the feature is enabled", () => assert.equal(enabled, true));',
+          "",
+        ].join("\n"),
+        "utf8",
+      );
       await git(repository, ["init", "--initial-branch=main"]);
       await git(repository, ["config", "user.email", "trust@example.invalid"]);
       await git(repository, ["config", "user.name", "Trust Fixture"]);
-      await git(repository, ["add", "package.json", "feature.js"]);
+      await git(repository, ["add", "package.json", "feature.js", "feature.test.js"]);
       await git(repository, ["commit", "-m", "baseline"]);
 
       const clean = await trust([
