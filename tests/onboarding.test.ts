@@ -13,6 +13,7 @@ async function trust(args: string[]) {
     args: ["--import", "tsx", cli, ...args],
     cwd: process.cwd(),
     timeoutMs: 30_000,
+    env: { FORCE_COLOR: "0" },
   });
 }
 
