@@ -105,7 +105,25 @@ Evidence IDs are unique across checks, invariants, and verifiers. Surface requir
 
 ## QA isolation
 
-Mission generation consumes the approved contract, repository instructions, and durable risk heuristics. It never consumes the implementation agent's explanation. A repository adapter translates generic mission IDs into safe product traversal. The runner independently captures status, final URL, browser errors, request failures, and screenshots.
+Mission generation consumes approved behavior descriptions and declared risks. It never consumes the
+implementation agent's explanation. The built-in generator is deterministic and records its name,
+version, and exact input digest on every mission; reports explicitly disclose that no LLM was used.
+A repository adapter translates generic mission IDs into safe product traversal. The runner
+independently captures status, final URL, browser errors, request failures, and screenshots.
+Repository policy declares whether traversal is deterministic or model-driven. QA evidence records
+the policy-bound adapter name and version and, for model-driven traversal, its provider, exact model,
+and prompt digest. Missing executor provenance produces `not_verified` evidence rather than silently
+being treated as deterministic execution.
+
+Model-assisted mission proposals belong before contract approval. A model-backed generator must
+record provider, exact model, prompt digest, and input digest, and its schema-validated output must be
+bound into the approved artifact before it can influence a trusted verification plan. Verification
+must not make an unrecorded or mutable model call.
+
+`contract:init` binds built-in deterministic missions into `qa_missions` on the draft. When an
+approved contract contains `qa_missions`, verification executes that exact artifact and does not add
+runtime heuristics. Contracts created before mission binding remain compatible and visibly use the
+versioned deterministic fallback generator.
 
 Expected negative-path statuses must be declared by the adapter. They remain recorded in measurements but do not become false infrastructure failures. Unexpected HTTP errors, console errors, uncaught exceptions, and transport failures fail the mission.
 

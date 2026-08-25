@@ -1,7 +1,8 @@
 # Executable Trust Layer
 
-A local-first executable trust authority for reviewing approved intent and concrete evidence instead
-of trusting implementation narratives or undifferentiated test output.
+A local-first merge authority for high-risk and AI-assisted software changes. It reviews approved
+intent and concrete evidence instead of trusting implementation narratives or undifferentiated test
+output.
 
 The central question is: **given this approved change contract and the resulting implementation, what must be proven before the change can be trusted?**
 
@@ -22,6 +23,13 @@ finding or incident -> approval-required learning proposal
 pnpm install
 pnpm exec playwright install chromium
 
+pnpm demo:prove
+```
+
+The proof runs the same approved contract against broken and fixed implementations. To bootstrap a
+repository with strict production defaults:
+
+```bash
 pnpm trust setup . --approver product-owner --reporter ci
 pnpm trust schema:export
 pnpm trust doctor --config trust.yaml
@@ -36,8 +44,6 @@ pnpm trust contract:approve change-contract.yaml \
 pnpm trust policy:digest --config trust.yaml
 pnpm trust ci:init --config trust.yaml --contract change-contract.yaml --report-signer ci \
   --authority-package @your-org/executable-trust@1.0.0
-
-pnpm demo:prove
 ```
 
 `setup` never overwrites policy or keys. It creates distinct, expiring approver and reporter
@@ -159,7 +165,7 @@ Repository policy can select six independently evidenced execution surfaces:
 - **native Playwright** runs existing deterministic browser suites against the supplied preview;
 - **request contracts** execute bounded HTTP probes with status, body, and JSON-path assertions;
 - **CLI missions** spawn explicit executables without a shell and assert exit/output contracts;
-- **browser and device agents** derive journeys from approved intent, run through repository adapters, and capture screenshots, browser errors, response failures, URLs, and visible outcomes.
+- **browser and device QA** runs intent-derived journeys through declared repository adapters and captures screenshots, browser errors, response failures, URLs, and visible outcomes.
 
 Every adapter is selected through the same changed-file, surface, dependency, risk, and contract graph. `trust doctor` rejects duplicate evidence IDs, dangling surface dependencies, unknown requirements, missing agent adapters, and missing local Playwright executables before a run starts.
 
@@ -181,3 +187,32 @@ See [the specification](docs/specification.md), [architecture](docs/architecture
 The local authority does not claim that every routine diff can be ignored. It enforces the narrower
 product thesis: where policy, authority, and evidence are complete, the system produces signed,
 auditable reasons to trust; where they are incomplete, it says so explicitly and blocks.
+
+## Mission generation and models
+
+The local trust path does not currently call an LLM. QA missions are derived deterministically from
+approved behavior descriptions and declared risks, then executed by a repository-owned adapter.
+Every generated mission records the generator name and version plus a digest of its exact inputs;
+terminal, JSON, and Markdown reports disclose that provenance and explicitly say when no LLM was
+used. QA evidence separately records whether browser execution was deterministic or model-driven;
+the bundled demo uses deterministic Playwright journeys. This keeps the default offline,
+reproducible, and reviewable.
+
+`contract:init` writes those missions into the draft contract, so approval binds the exact mission
+artifact. Verification executes approved `qa_missions` as written and only uses the versioned
+deterministic generator as a compatibility fallback for older contracts.
+
+A model could improve mission proposals before approval, but it must not become an invisible trust
+root. Any model-backed generator must record its provider, exact model, prompt digest, and input
+digest, return schema-validated missions, and have its output bound into the approved artifact before
+verification. `pnpm eval:missions` runs the checked-in intent corpus against the deterministic
+control; the same fail-closed scorer accepts repeated model candidates and records coverage,
+hallucinations, stability, latency, token use, and explicit human labels. The current comparison did
+not establish executable value: repository adapters dispatch by approved mission identity, so
+model-written titles and objectives do not alter browser actions. Accordingly, the product selects
+no proposal model. A checked-in policy can only select one after automated, operational,
+defect-yield, and complete human-review gates pass. `pnpm eval:missions:review` exports blinded,
+digest-bound review packets for a real executed pilot and applies completed labels without mutating
+the raw model artifact; verification itself remains deterministic. See
+[mission generation](docs/mission-generation.md) and the
+[Terra/Sol/Luna benchmark](docs/mission-generation-benchmark-2026-08-25.md).

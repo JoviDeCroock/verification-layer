@@ -66,6 +66,11 @@ tamper-evident local journal that those systems can consume.
 It also does not infer that an exclusion is safe. Exclusions are preserved as unknowns and cannot
 become verified claims.
 
+Mission-generator and QA-executor provenance is policy-bound and report-signature-bound, but a local
+adapter can still execute something different from the declared provider or model. Production
+model-backed execution therefore needs provider-side request attestations or an independently
+controlled gateway if model identity is a trust requirement.
+
 ## Production deployment requirements
 
 - Protect the base workflow, trust policy, contract-approval paths, and verification adapters with
