@@ -1,0 +1,11 @@
+packages:
+  - packages/*
+  - examples/*
+
+allowBuilds:
+  esbuild: true
+  workerd: true
+
+onlyBuiltDependencies:
+  - esbuild
+  - workerd

@@ -1,0 +1,12 @@
+node_modules/
+.pnpm-store/
+dist/
+.DS_Store
+.wrangler/
+test-results/
+playwright-report/
+examples/demo-app/public/app.js
+examples/demo-app/public/app.js.map
+examples/demo-app/.trust/runs/*/evidence/screenshots/
+examples/demo-app/.trust/runs/cli-plan.json
+!examples/demo-app/.trust/runs/.gitkeep

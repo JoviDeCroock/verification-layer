@@ -1,0 +1,42 @@
+{
+  "name": "executable-trust-layer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && pnpm --dir examples/demo-app build",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "demo:prove": "node --import tsx scripts/prove-demo.ts",
+    "format": "oxfmt .",
+    "lint": "oxlint --deny-warnings packages scripts tests examples/demo-app/src examples/demo-app/qa examples/demo-app/e2e examples/demo-app/playwright.config.ts",
+    "test": "vitest run",
+    "trust": "node --import tsx packages/cli/src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "latest",
+    "@playwright/test": "latest",
+    "@preact/signals": "latest",
+    "cac": "latest",
+    "drizzle-orm": "latest",
+    "esbuild": "latest",
+    "fast-glob": "latest",
+    "hono": "latest",
+    "micromatch": "latest",
+    "picocolors": "latest",
+    "preact": "latest",
+    "yaml": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/micromatch": "latest",
+    "@types/node": "latest",
+    "oxfmt": "latest",
+    "oxlint": "latest",
+    "tsx": "latest",
+    "typescript": "latest",
+    "vitest": "latest",
+    "wrangler": "latest"
+  },
+  "packageManager": "pnpm@11.3.0"
+}
