@@ -45,6 +45,9 @@ No hand-edited YAML, keys, schema export, or shell-command permission is require
 Generated run artifacts and private keys are ignored through `.trust/.gitignore`; the current
 contract remains visible so it can be reviewed and committed for CI.
 
+At any point, `pnpm trust status` summarizes the current state and prints one recommended next
+command. It is also the recovery entry point when a later command reports missing setup.
+
 The result explicitly says `LOCAL ASSURANCE`; it is useful repository evidence, not protected merge
 authority. Upgrade the same policy and newest generated contract with:
 
@@ -98,9 +101,10 @@ readiness result, counts, warnings, and blockers as a stable machine-readable co
 ## CLI
 
 ```text
-trust init [repository]       discover verification and generate trust YAML
 trust try                     show the bundled broken-versus-fixed proof
+trust status [repository]     show current state and the single best next action
 trust start [repository]      go from one intent sentence to a local verdict
+trust init [repository]       discover verification and generate trust YAML
 trust setup [repository]      bootstrap strict policy and separate expiring keys
 trust enable github           upgrade local setup to protected merge enforcement
 trust authority:keygen        generate an Ed25519 authority identity
@@ -126,6 +130,21 @@ trust reports:prune           preview or confirm bounded local report retention
 trust learn <report.json>     propose reusable verification improvements
 trust learn-incident <file>   turn an incident model into proposals
 ```
+
+## Developer and agent interface
+
+`trust status` is the orientation command for humans, scripts, and coding agents. It reports Git,
+policy, contract, last-run, and GitHub-enforcement state, then returns one recommended next action.
+Use `trust status --format json` for its versioned machine contract; the matching JSON Schema ships as
+`schemas/status.schema.json`. Guided start JSON is similarly defined by `schemas/start.schema.json`.
+
+`start`, `status`, `inspect`, `plan`, `verify`, and `explain` support clean JSON output. `plan --no-write`
+previews evidence selection without changing the repository. `verify --format json` suppresses
+GitHub annotations so standard output remains parseable; generated CI uses terminal mode to retain
+summaries, outputs, and annotations. See [AGENTS.md](AGENTS.md) for the repository-safe agent loop,
+trust boundaries, and exit-code contract. From this source checkout, use `pnpm --silent trust ...`
+when parsing JSON so the package-manager script banner is suppressed; an installed `trust` binary
+needs no wrapper.
 
 `trust plan`, `trust start`, and `trust verify` derive changed files from Git by default. Pass `--base <ref>`
 to include committed changes since a merge base. `--changed` remains available for isolated fixtures

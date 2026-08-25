@@ -1,5 +1,5 @@
 {
-  "proven_at": "2026-08-25T13:52:58.954Z",
+  "proven_at": "2026-08-25T16:26:57.192Z",
   "thesis": "The full verifier matrix stays deterministic; independent browser and device agents reject the duplicate-invitation bug while the fixed implementation passes every required evidence category.",
   "broken": {
     "verdict": "not_trusted",

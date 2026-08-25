@@ -24,6 +24,20 @@ Historical reports without an assurance field remain readable; readers derive th
 change-set provenance and attestation. `trust doctor --require trial|local|attested` checks readiness
 for the requested use instead of treating unfinished production deployment as a failed first run.
 
+## Experience contracts
+
+The terminal interface leads with `try`, `status`, `start`, `explain`, and `enable github`; expert
+policy and authority commands remain grouped in help instead of defining the first-run path.
+`trust status` emits a versioned repository-state document and exactly one recommended next action.
+Its JSON Schema is distributed with the other public contracts.
+
+`start`, `status`, `inspect`, `plan`, `verify`, and `explain` accept `--format json`. JSON mode writes
+only the requested document to standard output. Guided start has a versioned result schema for both
+completed verification and the non-error `no_changes` state. `plan --no-write` is the non-mutating
+selection preview.
+Exit code `0` means command success or a trusted verification verdict, `1` means a runtime/readiness
+failure or non-trusted verdict, and `2` means contract review prevented planning.
+
 ## Trust configuration
 
 `trust.yaml` is versioned repository policy. It names knowledge sources, commands, custom invariants, product surfaces, dependencies between surfaces, and QA traversal instructions. Commands remain adapters to existing tools; they do not replace linters, test frameworks, or benchmark suites. Discovered package scripts are represented as structured `executable`, `args`, `cwd`, and `env` values. Legacy shell strings remain supported only behind the explicit shell-command policy exception.

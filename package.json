@@ -23,6 +23,7 @@
     "trust": "./dist/packages/cli/src/index.js"
   },
   "files": [
+    "AGENTS.md",
     "dist/packages",
     "docs",
     "evals",
