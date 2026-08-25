@@ -8,7 +8,7 @@ Plan
 
 Implementation
 2 changed file(s)
-Commit: 25080f6f1495
+Commit: b822ae5ffe7f
 Branch: main
 Working tree: dirty
 Change set: explicit
@@ -50,6 +50,12 @@ Verification
 ✓ CLI mission selective-plan passed.
 ✓ Changed-file contents remained stable throughout evidence execution.
 ✓ Git HEAD remained stable throughout evidence execution.
+
+QA mission generation
+Deterministic: executable-trust-layer/intent-heuristics@1; no LLM used; 6 mission(s)
+
+QA execution
+Deterministic: trust-demo/playwright-journeys@1; no LLM used
 
 Experiential evidence
 ✓ An administrator invited a new user through the running UI.

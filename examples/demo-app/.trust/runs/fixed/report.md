@@ -11,13 +11,13 @@ Add organization invitations without weakening authorization or existing signup 
 ## Implementation
 
 - 2 changed file(s)
-- Commit: `25080f6f14952e5c8312767fc36952ee3474a4f3`
+- Commit: `b822ae5ffe7f3d1ab51b5c1fe8ce762e9cba8fb2`
 - Branch: `main`
 - Working tree: dirty
 - Change-set source: explicit
-- Contract digest: `a78dd4d5ad86f919ffd665ecd61bb8571816dca2ef59b081801cbb6eebccd91e`
-- Policy digest: `ce3d412a65f1c7b780116358b50ee63ab1cd0f3c73622cef9f5942bb0547683a`
-- Plan digest: `adecb77cfde0b37edba359753cdc0a68f10bc54e344b19195256c3d2f0bc9b03`
+- Contract digest: `1322216099c82749f025a19b68b8c4e5f4fb1e11c363a520ae9ece1b5dc867ef`
+- Policy digest: `945800eee71a66057f63cfd0b92d6e9b83dc5b409b522b35e5bdbda6633364eb`
+- Plan digest: `a7736865256aba7b3c49f989027ea54d8f168aaea3c3b349a0932f073424374a`
 - Change-set digest: `bf906672942deba40b15d2e4f1c7cb46cd4839af28d645f163cf0e35566bc9d4`
 - Attestation: none
 - Preview origin: http://127.0.0.1:4318
@@ -59,6 +59,20 @@ Add organization invitations without weakening authorization or existing signup 
 - ✓ **trust-cli:selective-plan** — CLI mission selective-plan passed.
 - ✓ **change-set-stability** — Changed-file contents remained stable throughout evidence execution.
 - ✓ **repository-head-stability** — Git HEAD remained stable throughout evidence execution.
+
+## QA mission generation
+
+- Deterministic: executable-trust-layer/intent-heuristics@1; no LLM used; 6 mission(s)
+- **happy-path** — admins can invite users by email; derived from `admins can invite users by email`; input `d2e427004b85`
+- **authorization** — Unauthorized actor is denied; derived from `non-admins cannot invite users`; input `64954a5a2284`
+- **duplicate-submission** — Retry and duplicate submission; derived from `duplicate invitations do not create duplicate pending invitations`; input `58da06fbc16b`
+- **expiration** — Expired artifact is rejected; derived from `invitations expire after seven days`; input `9a89ab7ebc1e`
+- **regression** — Existing adjacent journey remains intact; derived from `existing signup behavior remains unchanged`; input `a786b57d0f96`
+- **mobile-journey** — Primary journey works on a mobile viewport; derived from `risk heuristic: mobile`; input `bb7ad28ac0f4`
+
+## QA execution
+
+- Deterministic: trust-demo/playwright-journeys@1; no LLM used
 
 ## Evidence selection
 
