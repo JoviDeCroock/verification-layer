@@ -7,14 +7,25 @@ import { runProcess } from "../packages/runner/src/index.js";
 
 const cli = path.resolve("packages/cli/src/index.ts");
 
+function stripAnsi(value: string) {
+  return value
+    .split(String.fromCharCode(27))
+    .map((part, index) => (index === 0 ? part : part.replace(/^\[[0-?]*[ -/]*[@-~]/, "")))
+    .join("");
+}
+
 async function trust(args: string[]) {
-  return runProcess({
+  const result = await runProcess({
     executable: process.execPath,
     args: ["--import", "tsx", cli, ...args],
     cwd: process.cwd(),
     timeoutMs: 30_000,
-    env: { FORCE_COLOR: "0" },
   });
+  return {
+    ...result,
+    stdout: stripAnsi(result.stdout),
+    stderr: stripAnsi(result.stderr),
+  };
 }
 
 async function git(repository: string, args: string[]) {
