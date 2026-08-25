@@ -128,6 +128,7 @@ describe("ridiculously easy onboarding", () => {
       ]);
       expect(enabled.exitCode, enabled.stderr).toBe(0);
       expect(enabled.stdout).toContain("GitHub merge enforcement is ready locally");
+      expect(enabled.stdout).toContain("executable-trust-layer@0.1.0 (must be available");
       expect(enabled.stdout).toContain("Trust authority / attest");
       const workflow = await readFile(
         path.join(repository, ".github", "workflows", "trust.yml"),

@@ -19,17 +19,24 @@ finding or incident -> approval-required learning proposal
 
 ## Try it
 
+From an installed source checkout, the zero-setup proof is one command:
+
 ```bash
-npx executable-trust-layer@latest try
+pnpm trust try
 ```
 
 That shows the bundled broken-versus-fixed proof without configuring a repository. To get a real
 local verdict from an existing Git repository, provide the one fact discovery cannot safely infer:
 
 ```bash
-npx executable-trust-layer@latest start \
+pnpm trust start \
   --intent "Describe the user-visible outcome"
 ```
+
+After the first public npm release, the checkout and install steps collapse to
+`npx executable-trust-layer@latest try` and `npx executable-trust-layer@latest start --intent
+"Describe the user-visible outcome"`. The package is not currently published; the local tarball is
+pack-and-install tested, but this README does not present an unavailable registry command as live.
 
 With no subcommand, the CLI enters the same guided start flow and asks for intent interactively.
 It discovers safe structured package scripts, creates a local policy, derives the Git change set,
@@ -42,7 +49,7 @@ The result explicitly says `LOCAL ASSURANCE`; it is useful repository evidence, 
 authority. Upgrade the same policy and newest generated contract with:
 
 ```bash
-trust enable github
+pnpm trust enable github
 ```
 
 That creates separate expiring approver and reporter identities, re-signs the contract, writes the

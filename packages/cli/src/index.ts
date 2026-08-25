@@ -907,13 +907,14 @@ cli
         `GitHub enablement currently supports npm and pnpm projects; discovered ${discovery.packageManager ?? "no package manager"}. Use trust ci:init --package-manager after defining the install strategy for this repository.`,
       );
     const packageManager = discovery.packageManager;
+    const authorityPackage = String(
+      options.authorityPackage ?? `executable-trust-layer@${TRUST_VERSION}`,
+    );
     const workflow = renderGitHubWorkflow({
       configFile: path.relative(repositoryRoot, configFile),
       contractFile: path.relative(repositoryRoot, contractFile),
       packageManager,
-      authorityPackage: String(
-        options.authorityPackage ?? `executable-trust-layer@${TRUST_VERSION}`,
-      ),
+      authorityPackage,
       reporterId,
       privateKeySecret: String(options.keySecret),
     });
@@ -951,6 +952,7 @@ cli
     console.log(`Reporter private key: ${reporterPrivateFile}`);
     console.log(`GitHub secret: ${String(options.keySecret)}`);
     console.log(`Repository variable TRUST_POLICY_SHA256: ${sha256(config)}`);
+    console.log(`Authority package: ${authorityPackage} (must be available to the CI runner)`);
     console.log("Required status check: Trust authority / attest");
     console.log("Next: protect the trust-authority environment and add the secret and variable.");
   });
