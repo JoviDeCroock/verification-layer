@@ -1,0 +1,17 @@
+version: 1
+source_incident: Duplicate invitation after repeated submission
+approval:
+  status: proposed
+proposals:
+  - type: regression-test
+    description: "Add a regression test for incident: Duplicate invitation after repeated submission.
+      Cause: The create-invitation mutation was not idempotent for an already-pending email."
+    source_evidence: incident:Duplicate invitation after repeated submission
+  - type: qa-heuristic
+    description: "Exercise team-management under the conditions from: Duplicate invitation after
+      repeated submission."
+    source_evidence: incident:Duplicate invitation after repeated submission
+  - type: knowledge
+    description: "Record the domain failure mode: The create-invitation mutation was not idempotent for
+      an already-pending email."
+    source_evidence: incident:Duplicate invitation after repeated submission

@@ -1,0 +1,254 @@
+{
+  "proven_at": "2026-08-25T05:20:07.242Z",
+  "thesis": "The full verifier matrix stays deterministic; independent browser and device agents reject the duplicate-invitation bug while the fixed implementation passes every required evidence category.",
+  "broken": {
+    "verdict": "not_trusted",
+    "matrix": [
+      {
+        "id": "client-build",
+        "category": "static",
+        "status": "verified",
+        "summary": "Preact client build passed."
+      },
+      {
+        "id": "typecheck",
+        "category": "static",
+        "status": "verified",
+        "summary": "TypeScript passed."
+      },
+      {
+        "id": "unit-tests",
+        "category": "test",
+        "status": "verified",
+        "summary": "Unit tests passed."
+      },
+      {
+        "id": "demo-client-bundle",
+        "category": "invariant",
+        "status": "verified",
+        "summary": "Preact client bundle: 36304 bytes within threshold."
+      },
+      {
+        "id": "api-requests:health",
+        "category": "request",
+        "status": "verified",
+        "summary": "GET /api/health satisfied its response contract."
+      },
+      {
+        "id": "api-requests:unauthorized-invitation",
+        "category": "request",
+        "status": "verified",
+        "summary": "POST /api/invitations satisfied its response contract."
+      },
+      {
+        "id": "agent-browser:intent-browser:happy-path",
+        "category": "qa",
+        "status": "verified",
+        "summary": "An administrator invited a new user through the running UI."
+      },
+      {
+        "id": "agent-browser:intent-browser:authorization",
+        "category": "qa",
+        "status": "verified",
+        "summary": "A non-admin was denied and no invitation was created."
+      },
+      {
+        "id": "agent-browser:intent-browser:duplicate-submission",
+        "category": "qa",
+        "status": "failed",
+        "summary": "Duplicate submission counts were sequential=2, concurrent=2."
+      },
+      {
+        "id": "agent-browser:intent-browser:expiration",
+        "category": "qa",
+        "status": "verified",
+        "summary": "An expired invitation was rejected in the acceptance journey."
+      },
+      {
+        "id": "agent-browser:intent-browser:regression",
+        "category": "qa",
+        "status": "verified",
+        "summary": "The existing signup surface remained reachable and interactive."
+      },
+      {
+        "id": "agent-device:intent-device:mobile-390x844:happy-path",
+        "category": "device",
+        "status": "verified",
+        "summary": "An administrator invited a new user through the running UI."
+      },
+      {
+        "id": "agent-device:intent-device:mobile-390x844:authorization",
+        "category": "device",
+        "status": "verified",
+        "summary": "A non-admin was denied and no invitation was created."
+      },
+      {
+        "id": "agent-device:intent-device:mobile-390x844:duplicate-submission",
+        "category": "device",
+        "status": "failed",
+        "summary": "Duplicate submission counts were sequential=2, concurrent=2."
+      },
+      {
+        "id": "agent-device:intent-device:mobile-390x844:expiration",
+        "category": "device",
+        "status": "verified",
+        "summary": "An expired invitation was rejected in the acceptance journey."
+      },
+      {
+        "id": "agent-device:intent-device:mobile-390x844:regression",
+        "category": "device",
+        "status": "verified",
+        "summary": "The existing signup surface remained reachable and interactive."
+      },
+      {
+        "id": "agent-device:intent-device:mobile-390x844:mobile-journey",
+        "category": "device",
+        "status": "verified",
+        "summary": "An administrator invited a new user through the running UI."
+      },
+      {
+        "id": "playwright-ui",
+        "category": "e2e",
+        "status": "verified",
+        "summary": "Native Playwright suite passed."
+      },
+      {
+        "id": "trust-cli:version",
+        "category": "cli",
+        "status": "verified",
+        "summary": "CLI mission version passed."
+      },
+      {
+        "id": "trust-cli:selective-plan",
+        "category": "cli",
+        "status": "verified",
+        "summary": "CLI mission selective-plan passed."
+      }
+    ]
+  },
+  "fixed": {
+    "verdict": "trusted",
+    "matrix": [
+      {
+        "id": "client-build",
+        "category": "static",
+        "status": "verified",
+        "summary": "Preact client build passed."
+      },
+      {
+        "id": "typecheck",
+        "category": "static",
+        "status": "verified",
+        "summary": "TypeScript passed."
+      },
+      {
+        "id": "unit-tests",
+        "category": "test",
+        "status": "verified",
+        "summary": "Unit tests passed."
+      },
+      {
+        "id": "demo-client-bundle",
+        "category": "invariant",
+        "status": "verified",
+        "summary": "Preact client bundle: 36304 bytes within threshold."
+      },
+      {
+        "id": "api-requests:health",
+        "category": "request",
+        "status": "verified",
+        "summary": "GET /api/health satisfied its response contract."
+      },
+      {
+        "id": "api-requests:unauthorized-invitation",
+        "category": "request",
+        "status": "verified",
+        "summary": "POST /api/invitations satisfied its response contract."
+      },
+      {
+        "id": "agent-browser:intent-browser:happy-path",
+        "category": "qa",
+        "status": "verified",
+        "summary": "An administrator invited a new user through the running UI."
+      },
+      {
+        "id": "agent-browser:intent-browser:authorization",
+        "category": "qa",
+        "status": "verified",
+        "summary": "A non-admin was denied and no invitation was created."
+      },
+      {
+        "id": "agent-browser:intent-browser:duplicate-submission",
+        "category": "qa",
+        "status": "verified",
+        "summary": "Retry and concurrent submission reused one pending invitation."
+      },
+      {
+        "id": "agent-browser:intent-browser:expiration",
+        "category": "qa",
+        "status": "verified",
+        "summary": "An expired invitation was rejected in the acceptance journey."
+      },
+      {
+        "id": "agent-browser:intent-browser:regression",
+        "category": "qa",
+        "status": "verified",
+        "summary": "The existing signup surface remained reachable and interactive."
+      },
+      {
+        "id": "agent-device:intent-device:mobile-390x844:happy-path",
+        "category": "device",
+        "status": "verified",
+        "summary": "An administrator invited a new user through the running UI."
+      },
+      {
+        "id": "agent-device:intent-device:mobile-390x844:authorization",
+        "category": "device",
+        "status": "verified",
+        "summary": "A non-admin was denied and no invitation was created."
+      },
+      {
+        "id": "agent-device:intent-device:mobile-390x844:duplicate-submission",
+        "category": "device",
+        "status": "verified",
+        "summary": "Retry and concurrent submission reused one pending invitation."
+      },
+      {
+        "id": "agent-device:intent-device:mobile-390x844:expiration",
+        "category": "device",
+        "status": "verified",
+        "summary": "An expired invitation was rejected in the acceptance journey."
+      },
+      {
+        "id": "agent-device:intent-device:mobile-390x844:regression",
+        "category": "device",
+        "status": "verified",
+        "summary": "The existing signup surface remained reachable and interactive."
+      },
+      {
+        "id": "agent-device:intent-device:mobile-390x844:mobile-journey",
+        "category": "device",
+        "status": "verified",
+        "summary": "An administrator invited a new user through the running UI."
+      },
+      {
+        "id": "playwright-ui",
+        "category": "e2e",
+        "status": "verified",
+        "summary": "Native Playwright suite passed."
+      },
+      {
+        "id": "trust-cli:version",
+        "category": "cli",
+        "status": "verified",
+        "summary": "CLI mission version passed."
+      },
+      {
+        "id": "trust-cli:selective-plan",
+        "category": "cli",
+        "status": "verified",
+        "summary": "CLI mission selective-plan passed."
+      }
+    ]
+  }
+}

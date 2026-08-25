@@ -1,0 +1,508 @@
+{
+  "version": 1,
+  "run_id": "organization-invitations-2026-08-25T05-24-34-971Z",
+  "created_at": "2026-08-25T05:24:34.971Z",
+  "contract": {
+    "version": 1,
+    "id": "organization-invitations",
+    "intent": "Add organization invitations without weakening authorization or existing signup behavior.",
+    "expected_behaviors": [
+      "admins can invite users by email",
+      "non-admins cannot invite users",
+      "duplicate invitations do not create duplicate pending invitations",
+      "invitations expire after seven days",
+      "existing signup behavior remains unchanged"
+    ],
+    "affected_surfaces": [
+      "team-management",
+      "authentication"
+    ],
+    "risks": [
+      "authorization",
+      "state integrity",
+      "mobile ui"
+    ],
+    "required_evidence": [
+      "typecheck",
+      "unit-tests",
+      "demo-client-bundle",
+      "playwright-ui",
+      "api-requests",
+      "trust-cli",
+      "intent-browser",
+      "intent-device"
+    ],
+    "excluded": [
+      {
+        "item": "production email delivery",
+        "reason": "The demo has no external email provider."
+      }
+    ],
+    "approval": {
+      "status": "approved",
+      "approved_by": "demo-product-owner",
+      "approved_at": "2026-08-25T08:00:00.000Z"
+    }
+  },
+  "plan": {
+    "version": 1,
+    "contract_id": "organization-invitations",
+    "created_at": "2026-08-25T05:24:28.042Z",
+    "changed_files": [
+      "src/worker.ts",
+      "src/client.tsx"
+    ],
+    "affected_surfaces": [
+      "authentication",
+      "team-management"
+    ],
+    "selected_checks": [
+      "client-build",
+      "typecheck",
+      "unit-tests"
+    ],
+    "selected_invariants": [
+      "demo-client-bundle"
+    ],
+    "selected_verifiers": [
+      "api-requests",
+      "intent-browser",
+      "intent-device",
+      "playwright-ui",
+      "trust-cli"
+    ],
+    "qa_required": false,
+    "selection_reasons": {
+      "surface:team-management": [
+        "changed files matched src/worker.ts, src/client.tsx, src/domain.ts, src/schema.ts"
+      ],
+      "surface:authentication": [
+        "changed files matched src/domain.ts, src/client.tsx"
+      ],
+      "typecheck": [
+        "required by surface team-management",
+        "required by dependency team-management -> authentication",
+        "required by surface authentication",
+        "changed files matched check scope",
+        "selected for contract risk authorization",
+        "explicitly required by approved contract"
+      ],
+      "unit-tests": [
+        "required by surface team-management",
+        "required by dependency team-management -> authentication",
+        "required by surface authentication",
+        "selected for contract risk authorization",
+        "explicitly required by approved contract"
+      ],
+      "client-build": [
+        "required by surface team-management",
+        "changed files matched check scope"
+      ],
+      "demo-client-bundle": [
+        "required by surface team-management",
+        "changed files matched invariant scope",
+        "explicitly required by approved contract"
+      ],
+      "playwright-ui": [
+        "required by surface team-management",
+        "required by dependency team-management -> authentication",
+        "required by surface authentication",
+        "changed files matched verifier scope",
+        "selected for contract risk mobile ui",
+        "explicitly required by approved contract"
+      ],
+      "api-requests": [
+        "required by surface team-management",
+        "required by dependency team-management -> authentication",
+        "required by surface authentication",
+        "changed files matched verifier scope",
+        "selected for contract risk authorization",
+        "explicitly required by approved contract"
+      ],
+      "trust-cli": [
+        "required by surface team-management",
+        "explicitly required by approved contract"
+      ],
+      "intent-browser": [
+        "required by surface team-management",
+        "required by dependency team-management -> authentication",
+        "required by surface authentication",
+        "changed files matched verifier scope",
+        "selected for contract risk authorization",
+        "explicitly required by approved contract"
+      ],
+      "intent-device": [
+        "required by surface team-management",
+        "required by dependency team-management -> authentication",
+        "required by surface authentication",
+        "changed files matched verifier scope",
+        "selected for contract risk mobile ui",
+        "explicitly required by approved contract"
+      ]
+    }
+  },
+  "implementation": {
+    "changed_files": 2
+  },
+  "evidence": [
+    {
+      "id": "change-contract-approval",
+      "category": "plan",
+      "status": "verified",
+      "summary": "Change contract was approved before verification."
+    },
+    {
+      "id": "client-build",
+      "category": "static",
+      "status": "verified",
+      "summary": "Preact client build passed.",
+      "command": "pnpm build",
+      "duration_ms": 555,
+      "stdout": "",
+      "stderr": "$ pnpm build:client\n$ esbuild src/client.tsx --bundle --format=esm --sourcemap --outfile=public/app.js\n\n  public/app.js       35.5kb\n  public/app.js.map  191.6kb\n\n⚡ Done in 7ms\n"
+    },
+    {
+      "id": "typecheck",
+      "category": "static",
+      "status": "verified",
+      "summary": "TypeScript passed.",
+      "command": "pnpm --dir ../.. typecheck",
+      "duration_ms": 430,
+      "stdout": "",
+      "stderr": "$ tsc --noEmit\n"
+    },
+    {
+      "id": "unit-tests",
+      "category": "test",
+      "status": "verified",
+      "summary": "Unit tests passed.",
+      "command": "pnpm test",
+      "duration_ms": 635,
+      "stdout": "\n RUN  v4.1.11 /Users/jovi/Documents/ChatGPT/verification-layer/examples/demo-app\n\n\n Test Files  1 passed (1)\n      Tests  3 passed (3)\n   Start at  07:24:29\n   Duration  119ms (transform 15ms, setup 0ms, import 23ms, tests 2ms, environment 0ms)\n\n",
+      "stderr": "$ vitest run test\n"
+    },
+    {
+      "id": "demo-client-bundle",
+      "category": "invariant",
+      "status": "verified",
+      "summary": "Preact client bundle: 36304 bytes within threshold.",
+      "command": "pnpm size",
+      "duration_ms": 298,
+      "stdout": "{\"value\":36304,\"unit\":\"bytes\",\"file\":\"public/app.js\"}\n",
+      "stderr": "$ node scripts/measure-bundle.mjs\n",
+      "measurements": {
+        "current": 36304,
+        "baseline": 40000,
+        "max": 60000,
+        "allowed_regression": 20000,
+        "unit": "bytes"
+      }
+    },
+    {
+      "id": "api-requests:health",
+      "category": "request",
+      "status": "verified",
+      "summary": "GET /api/health satisfied its response contract.",
+      "duration_ms": 22,
+      "stdout": "{\"ok\":true,\"variant\":\"fixed\"}",
+      "measurements": {
+        "status": 200,
+        "response_bytes": 29,
+        "observed": "true"
+      }
+    },
+    {
+      "id": "api-requests:unauthorized-invitation",
+      "category": "request",
+      "status": "verified",
+      "summary": "POST /api/invitations satisfied its response contract.",
+      "duration_ms": 6,
+      "stdout": "{\"error\":\"Only administrators can invite members.\"}",
+      "measurements": {
+        "status": 403,
+        "response_bytes": 51
+      }
+    },
+    {
+      "id": "agent-browser:intent-browser:happy-path",
+      "category": "qa",
+      "status": "verified",
+      "summary": "An administrator invited a new user through the running UI.",
+      "duration_ms": 225,
+      "measurements": {
+        "final_url": "http://127.0.0.1:4318/",
+        "console_errors": 0,
+        "failed_requests": 0,
+        "http_error_responses": 0
+      },
+      "artifacts": [
+        "evidence/screenshots/agent-browser-intent-browser-happy-path.png"
+      ]
+    },
+    {
+      "id": "agent-browser:intent-browser:authorization",
+      "category": "qa",
+      "status": "verified",
+      "summary": "A non-admin was denied and no invitation was created.",
+      "duration_ms": 178,
+      "measurements": {
+        "final_url": "http://127.0.0.1:4318/",
+        "console_errors": 1,
+        "failed_requests": 0,
+        "http_error_responses": 1
+      },
+      "artifacts": [
+        "evidence/screenshots/agent-browser-intent-browser-authorization.png"
+      ]
+    },
+    {
+      "id": "agent-browser:intent-browser:duplicate-submission",
+      "category": "qa",
+      "status": "verified",
+      "summary": "Retry and concurrent submission reused one pending invitation.",
+      "duration_ms": 280,
+      "measurements": {
+        "sequential_pending_invitations": 1,
+        "concurrent_pending_invitations": 1,
+        "final_url": "http://127.0.0.1:4318/",
+        "console_errors": 0,
+        "failed_requests": 0,
+        "http_error_responses": 0
+      },
+      "artifacts": [
+        "evidence/screenshots/agent-browser-intent-browser-duplicate-submission.png"
+      ]
+    },
+    {
+      "id": "agent-browser:intent-browser:expiration",
+      "category": "qa",
+      "status": "verified",
+      "summary": "An expired invitation was rejected in the acceptance journey.",
+      "duration_ms": 124,
+      "measurements": {
+        "final_url": "http://127.0.0.1:4318/accept/2390089d-ca62-432c-8c14-1cb4a0dd3cfc",
+        "console_errors": 1,
+        "failed_requests": 0,
+        "http_error_responses": 1
+      },
+      "artifacts": [
+        "evidence/screenshots/agent-browser-intent-browser-expiration.png"
+      ]
+    },
+    {
+      "id": "agent-browser:intent-browser:regression",
+      "category": "qa",
+      "status": "verified",
+      "summary": "The existing signup surface remained reachable and interactive.",
+      "duration_ms": 82,
+      "measurements": {
+        "final_url": "http://127.0.0.1:4318/signup",
+        "console_errors": 0,
+        "failed_requests": 0,
+        "http_error_responses": 0
+      },
+      "artifacts": [
+        "evidence/screenshots/agent-browser-intent-browser-regression.png"
+      ]
+    },
+    {
+      "id": "agent-device:intent-device:mobile-390x844:happy-path",
+      "category": "device",
+      "status": "verified",
+      "summary": "An administrator invited a new user through the running UI.",
+      "duration_ms": 225,
+      "measurements": {
+        "final_url": "http://127.0.0.1:4318/",
+        "console_errors": 0,
+        "failed_requests": 0,
+        "http_error_responses": 0
+      },
+      "artifacts": [
+        "evidence/screenshots/agent-device-intent-device-mobile-390x844-happy-path.png"
+      ]
+    },
+    {
+      "id": "agent-device:intent-device:mobile-390x844:authorization",
+      "category": "device",
+      "status": "verified",
+      "summary": "A non-admin was denied and no invitation was created.",
+      "duration_ms": 153,
+      "measurements": {
+        "final_url": "http://127.0.0.1:4318/",
+        "console_errors": 1,
+        "failed_requests": 0,
+        "http_error_responses": 1
+      },
+      "artifacts": [
+        "evidence/screenshots/agent-device-intent-device-mobile-390x844-authorization.png"
+      ]
+    },
+    {
+      "id": "agent-device:intent-device:mobile-390x844:duplicate-submission",
+      "category": "device",
+      "status": "verified",
+      "summary": "Retry and concurrent submission reused one pending invitation.",
+      "duration_ms": 282,
+      "measurements": {
+        "sequential_pending_invitations": 1,
+        "concurrent_pending_invitations": 1,
+        "final_url": "http://127.0.0.1:4318/",
+        "console_errors": 0,
+        "failed_requests": 0,
+        "http_error_responses": 0
+      },
+      "artifacts": [
+        "evidence/screenshots/agent-device-intent-device-mobile-390x844-duplicate-submission.png"
+      ]
+    },
+    {
+      "id": "agent-device:intent-device:mobile-390x844:expiration",
+      "category": "device",
+      "status": "verified",
+      "summary": "An expired invitation was rejected in the acceptance journey.",
+      "duration_ms": 82,
+      "measurements": {
+        "final_url": "http://127.0.0.1:4318/accept/f542a744-3b4c-4d40-b229-81838fbc0f9b",
+        "console_errors": 1,
+        "failed_requests": 0,
+        "http_error_responses": 1
+      },
+      "artifacts": [
+        "evidence/screenshots/agent-device-intent-device-mobile-390x844-expiration.png"
+      ]
+    },
+    {
+      "id": "agent-device:intent-device:mobile-390x844:regression",
+      "category": "device",
+      "status": "verified",
+      "summary": "The existing signup surface remained reachable and interactive.",
+      "duration_ms": 66,
+      "measurements": {
+        "final_url": "http://127.0.0.1:4318/signup",
+        "console_errors": 0,
+        "failed_requests": 0,
+        "http_error_responses": 0
+      },
+      "artifacts": [
+        "evidence/screenshots/agent-device-intent-device-mobile-390x844-regression.png"
+      ]
+    },
+    {
+      "id": "agent-device:intent-device:mobile-390x844:mobile-journey",
+      "category": "device",
+      "status": "verified",
+      "summary": "An administrator invited a new user through the running UI.",
+      "duration_ms": 205,
+      "measurements": {
+        "final_url": "http://127.0.0.1:4318/",
+        "console_errors": 0,
+        "failed_requests": 0,
+        "http_error_responses": 0
+      },
+      "artifacts": [
+        "evidence/screenshots/agent-device-intent-device-mobile-390x844-mobile-journey.png"
+      ]
+    },
+    {
+      "id": "playwright-ui",
+      "category": "e2e",
+      "status": "verified",
+      "summary": "Native Playwright suite passed.",
+      "command": "../../node_modules/.bin/playwright test --config playwright.config.ts",
+      "duration_ms": 1095,
+      "stdout": "\nRunning 2 tests using 1 worker\n\n  ✓  1 e2e/smoke.pw.ts:3:1 › renders the invitation product surface (169ms)\n  ✓  2 e2e/smoke.pw.ts:9:1 › exposes a healthy Worker API (51ms)\n\n  2 passed (732ms)\n",
+      "stderr": "(node:96593) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+    },
+    {
+      "id": "trust-cli:version",
+      "category": "cli",
+      "status": "verified",
+      "summary": "CLI mission version passed.",
+      "command": "node --import tsx ../../packages/cli/src/index.ts --version",
+      "duration_ms": 591,
+      "stdout": "trust/0.1.0 darwin-arm64 node-v22.22.3\n",
+      "stderr": ""
+    },
+    {
+      "id": "trust-cli:selective-plan",
+      "category": "cli",
+      "status": "verified",
+      "summary": "CLI mission selective-plan passed.",
+      "command": "node --import tsx ../../packages/cli/src/index.ts plan change-contract.yaml --config trust.yaml --changed src/worker.ts,src/client.tsx --output .trust/runs/cli-plan.json",
+      "duration_ms": 503,
+      "stdout": "Intent: Add organization invitations without weakening authorization or existing signup behavior.\nApproval: approved\nBehaviors: 5\nSurfaces: team-management, authentication\nRisks: authorization, state integrity, mobile ui\nRequired evidence: typecheck, unit-tests, demo-client-bundle, playwright-ui, api-requests, trust-cli, intent-browser, intent-device\n\nSelected: client-build, typecheck, unit-tests\nInvariants: demo-client-bundle\nVerifiers: api-requests, intent-browser, intent-device, playwright-ui, trust-cli\nQA: not required\n",
+      "stderr": ""
+    }
+  ],
+  "qa_missions": [
+    {
+      "id": "happy-path",
+      "title": "admins can invite users by email",
+      "objective": "admins can invite users by email",
+      "derived_from": [
+        "admins can invite users by email"
+      ],
+      "viewport": "desktop"
+    },
+    {
+      "id": "authorization",
+      "title": "Unauthorized actor is denied",
+      "objective": "non-admins cannot invite users",
+      "derived_from": [
+        "non-admins cannot invite users"
+      ],
+      "risk": "authorization",
+      "viewport": "desktop"
+    },
+    {
+      "id": "duplicate-submission",
+      "title": "Retry and duplicate submission",
+      "objective": "duplicate invitations do not create duplicate pending invitations",
+      "derived_from": [
+        "duplicate invitations do not create duplicate pending invitations"
+      ],
+      "risk": "state integrity",
+      "viewport": "desktop"
+    },
+    {
+      "id": "expiration",
+      "title": "Expired artifact is rejected",
+      "objective": "invitations expire after seven days",
+      "derived_from": [
+        "invitations expire after seven days"
+      ],
+      "risk": "time boundary",
+      "viewport": "desktop"
+    },
+    {
+      "id": "regression",
+      "title": "Existing adjacent journey remains intact",
+      "objective": "existing signup behavior remains unchanged",
+      "derived_from": [
+        "existing signup behavior remains unchanged"
+      ],
+      "viewport": "desktop"
+    },
+    {
+      "id": "mobile-journey",
+      "title": "Primary journey works on a mobile viewport",
+      "objective": "Add organization invitations without weakening authorization or existing signup behavior.",
+      "derived_from": [
+        "risk heuristic: mobile"
+      ],
+      "risk": "responsive UI",
+      "viewport": "mobile"
+    }
+  ],
+  "unknowns": [
+    "production email delivery was not verified: The demo has no external email provider."
+  ],
+  "learning_proposals": [
+    {
+      "type": "knowledge",
+      "description": "Document how to verify: production email delivery was not verified: The demo has no external email provider.",
+      "source_evidence": "unknown"
+    }
+  ],
+  "verdict": "trusted"
+}
