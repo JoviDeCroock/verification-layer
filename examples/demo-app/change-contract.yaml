@@ -1,0 +1,32 @@
+version: 1
+id: organization-invitations
+intent: Add organization invitations without weakening authorization or existing signup behavior.
+expected_behaviors:
+  - admins can invite users by email
+  - non-admins cannot invite users
+  - duplicate invitations do not create duplicate pending invitations
+  - invitations expire after seven days
+  - existing signup behavior remains unchanged
+affected_surfaces:
+  - team-management
+  - authentication
+risks:
+  - authorization
+  - state integrity
+  - mobile ui
+required_evidence:
+  - typecheck
+  - unit-tests
+  - demo-client-bundle
+  - playwright-ui
+  - api-requests
+  - trust-cli
+  - intent-browser
+  - intent-device
+excluded:
+  - item: production email delivery
+    reason: The demo has no external email provider.
+approval:
+  status: approved
+  approved_by: demo-product-owner
+  approved_at: 2026-08-25T08:00:00.000Z

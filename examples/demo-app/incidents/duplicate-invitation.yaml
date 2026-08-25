@@ -1,0 +1,8 @@
+version: 1
+title: Duplicate invitation after repeated submission
+related_change: organization-invitations
+cause: The create-invitation mutation was not idempotent for an already-pending email.
+missed_by:
+  - unit-tests
+affected_surfaces:
+  - team-management

@@ -1,0 +1,180 @@
+version: 1
+repository:
+  name: trust-demo-app
+  root: .
+knowledge:
+  sources:
+    - README.md
+    - docs/**
+    - adr/**
+checks:
+  - id: typecheck
+    label: TypeScript
+    kind: static
+    command: pnpm --dir ../.. typecheck
+    scope: [src/**, qa/**]
+    tags: [authorization, migration]
+    required: false
+    timeout_ms: 120000
+  - id: unit-tests
+    label: Unit tests
+    kind: test
+    command: pnpm test
+    scope: [src/domain.ts, test/**]
+    tags: [authorization]
+    required: false
+    timeout_ms: 120000
+  - id: client-build
+    label: Preact client build
+    kind: static
+    command: pnpm build
+    scope: [src/client.tsx, public/**]
+    tags: []
+    required: false
+    timeout_ms: 120000
+invariants:
+  - id: demo-client-bundle
+    label: Preact client bundle
+    scope: [src/client.tsx]
+    command: pnpm size
+    unit: bytes
+    baseline: 40000
+    threshold:
+      max: 60000
+      regression: 20000
+    timeout_ms: 120000
+surfaces:
+  - id: team-management
+    description: Invitation creation and pending invitation UI
+    paths: [src/worker.ts, src/client.tsx, src/domain.ts, src/schema.ts]
+    requires:
+      - typecheck
+      - unit-tests
+      - client-build
+      - demo-client-bundle
+      - playwright-ui
+      - api-requests
+      - trust-cli
+      - intent-browser
+      - intent-device
+    risks: [authorization, state-integrity, mobile-ui]
+    depends_on: [authentication]
+  - id: authentication
+    description: Role boundary and signup regression surface
+    paths: [src/domain.ts, src/client.tsx]
+    requires: [typecheck, unit-tests, playwright-ui, api-requests, intent-browser, intent-device]
+    risks: [authorization]
+    depends_on: []
+verifiers:
+  - id: playwright-ui
+    label: Native Playwright suite
+    kind: playwright
+    executable: ../../node_modules/.bin/playwright
+    args: [test, --config, playwright.config.ts]
+    cwd: .
+    env: {}
+    expect:
+      exit_code: 0
+      stdout_contains: [2 passed]
+      stderr_contains: []
+    scope: [src/**, e2e/**, public/**]
+    tags: [mobile ui]
+    required: false
+    timeout_ms: 120000
+  - id: api-requests
+    label: HTTP API contracts
+    kind: requests
+    scope: [src/worker.ts, src/schema.ts, migrations/**]
+    tags: [authorization, state integrity]
+    required: false
+    timeout_ms: 10000
+    requests:
+      - id: health
+        method: GET
+        path: /api/health
+        headers: {}
+        expect:
+          status: 200
+          json_path: $.ok
+          equals: true
+      - id: unauthorized-invitation
+        method: POST
+        path: /api/invitations
+        headers:
+          content-type: application/json
+          x-demo-role: member
+        body:
+          email: request-check@example.com
+        expect:
+          status: 403
+          body_includes: Only administrators
+  - id: trust-cli
+    label: Trust CLI journeys
+    kind: cli
+    scope: [trust.yaml, change-contract.yaml]
+    tags: []
+    required: false
+    timeout_ms: 30000
+    missions:
+      - id: version
+        executable: node
+        args: [--import, tsx, ../../packages/cli/src/index.ts, --version]
+        cwd: .
+        env: {}
+        expect:
+          exit_code: 0
+          stdout_contains: [0.1.0]
+          stderr_contains: []
+      - id: selective-plan
+        executable: node
+        args:
+          - --import
+          - tsx
+          - ../../packages/cli/src/index.ts
+          - plan
+          - change-contract.yaml
+          - --config
+          - trust.yaml
+          - --changed
+          - src/worker.ts,src/client.tsx
+          - --output
+          - .trust/runs/cli-plan.json
+        cwd: .
+        env: {}
+        expect:
+          exit_code: 0
+          stdout_contains: ["QA: not required", "Verifiers:"]
+          stderr_contains: []
+  - id: intent-browser
+    label: Independent browser agent
+    kind: agent-browser
+    adapter: qa/adapter.ts
+    scope: [src/**, public/**]
+    tags: [authorization, state integrity]
+    required: false
+    timeout_ms: 30000
+    instructions:
+      - Derive missions from the approved contract, never the implementation explanation.
+      - Treat unexpected console, response, and transport failures as evidence failures.
+    screenshot: true
+  - id: intent-device
+    label: Independent device agent
+    kind: agent-device
+    adapter: qa/adapter.ts
+    scope: [src/client.tsx, public/**]
+    tags: [mobile ui]
+    required: false
+    timeout_ms: 30000
+    instructions:
+      - Re-run intent-derived journeys under touch and constrained viewport conditions.
+    screenshot: true
+    devices:
+      - name: mobile-390x844
+        width: 390
+        height: 844
+        has_touch: true
+qa:
+  enabled: false
+  instructions: []
+  screenshot: true
+  timeout_ms: 30000

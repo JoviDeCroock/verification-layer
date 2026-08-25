@@ -1,0 +1,29 @@
+{
+  "name": "@trust/demo-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm build:client",
+    "build:client": "esbuild src/client.tsx --bundle --format=esm --sourcemap --outfile=public/app.js",
+    "dev": "wrangler dev --port 4317",
+    "migrate:local": "wrangler d1 migrations apply trust-demo --local",
+    "size": "node scripts/measure-bundle.mjs",
+    "test": "vitest run test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@preact/signals": "^2.11.1",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.13.3",
+    "preact": "^10.29.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.125.0"
+  },
+  "packageManager": "pnpm@11.3.0"
+}

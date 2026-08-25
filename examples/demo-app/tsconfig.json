@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "qa/**/*.ts",
+    "test/**/*.ts",
+    "worker-configuration.d.ts"
+  ]
+}
