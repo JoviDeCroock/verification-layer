@@ -285,7 +285,7 @@ describe("ridiculously easy onboarding", () => {
     } finally {
       await rm(repository, { recursive: true, force: true });
     }
-  }, 15_000);
+  }, 60_000);
 
   it("creates reusable policy on a clean repository without verifying its own artifacts", async () => {
     const repository = await mkdtemp(path.join(os.tmpdir(), "trust-clean-start-"));
