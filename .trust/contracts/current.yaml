@@ -38,6 +38,6 @@ excluded: []
 approval:
   status: approved
   approved_by: local-user
-  approved_at: 2026-08-26T17:40:25.738Z
+  approved_at: 2026-08-26T17:42:34.331Z
   content_sha256: 9cf8adca782cc4297c2176fe68199824057e7928dd87193e1294cb9325dc819b
   method: local
