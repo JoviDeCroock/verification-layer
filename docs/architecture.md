@@ -1,6 +1,6 @@
 # Architecture
 
-The product is a local-first TypeScript trust authority split into focused packages:
+The product is a local-first TypeScript trust authority organized into focused internal modules:
 
 - `core`: schemas, evidence semantics, persistence, and orchestration.
 - `core/provenance`: canonical policy, contract, and plan digests plus Git/runtime identity.
@@ -21,7 +21,12 @@ The product is a local-first TypeScript trust authority split into focused packa
 - `cli/ci`: escaped GitHub summaries, outputs, annotations, and strict workflow generation.
 - `schemas`: distributable editor contracts generated and drift-checked from the runtime schemas.
 
-The onboarding surface composes those packages without weakening them. `trust start` performs
+These modules compile and ship together as the single `executable-trust-layer` npm package. They do
+not have independent manifests, versions, dependency declarations, or release lifecycles; the root
+`package.json` owns that metadata and exposes the installed `trust` executable. The `packages/`
+directory is a source-code boundary, not a pnpm workspace or a collection of public package APIs.
+
+The onboarding surface composes those modules without weakening them. `trust --intent` performs
 discovery, writes a local-only policy, derives the Git change set, creates and locally approves the
 bound contract, invokes the normal verifier, and renders the same report schema used by expert-mode
 commands. `trust enable github` upgrades authority and workflow files rather than maintaining a

@@ -29,12 +29,11 @@ That shows the bundled broken-versus-fixed proof without configuring a repositor
 local verdict from an existing Git repository, provide the one fact discovery cannot safely infer:
 
 ```bash
-pnpm trust start \
-  --intent "Describe the user-visible outcome"
+pnpm trust --intent "Describe the user-visible outcome"
 ```
 
 After the first public npm release, the checkout and install steps collapse to
-`npx executable-trust-layer@latest try` and `npx executable-trust-layer@latest start --intent
+`npx executable-trust-layer@latest try` and `npx executable-trust-layer@latest --intent
 "Describe the user-visible outcome"`. The package is not currently published; the local tarball is
 pack-and-install tested, but this README does not present an unavailable registry command as live.
 
@@ -70,75 +69,41 @@ pnpm exec playwright install chromium
 pnpm demo:prove
 ```
 
-The proof runs the same approved contract against broken and fixed implementations. To bootstrap a
-repository with strict production defaults:
-
-```bash
-pnpm trust setup . --approver product-owner --reporter ci
-pnpm trust schema:export
-pnpm trust doctor --config trust.yaml
-pnpm trust contract:init change-contract.yaml \
-  --config trust.yaml \
-  --intent "Describe the user-visible outcome" \
-  --surface application
-pnpm trust contract:approve change-contract.yaml \
-  --config trust.yaml \
-  --by product-owner \
-  --key .trust/keys/approver.private.pem
-pnpm trust policy:digest --config trust.yaml
-pnpm trust ci:init --config trust.yaml --contract change-contract.yaml --report-signer ci \
-  --authority-package @your-org/executable-trust@1.0.0
-```
-
-`setup` never overwrites policy or keys. It creates distinct, expiring approver and reporter
-identities with owner-only private-key permissions and strict execution defaults. Review discovered
-shell checks before explicitly enabling them; a new policy intentionally fails `doctor` until every
-required adapter and authority decision is ready. `trust doctor --format json` exposes the same
-readiness result, counts, warnings, and blockers as a stable machine-readable contract.
+The proof runs the same approved contract against broken and fixed implementations. Teams that need
+manual policy, authority, or attestation control can use the backward-compatible expert commands in
+`trust --help --all`; the everyday workflow does not require them. See
+[GitHub Actions deployment](docs/github-actions.md) for the protected-CI path.
 
 `demo:prove` runs the same approved contract against two isolated local D1 previews. In the broken variant the static, unit, bundle, native Playwright, request, and CLI evidence passes, but independent browser/device missions discover that retrying and racing the invitation mutation creates duplicate pending invitations. The fixed variant uses a D1 uniqueness invariant and conflict-safe Drizzle insertion, then passes the same full matrix. Reports and screenshots are written beneath `examples/demo-app/.trust/runs/`.
 
-## CLI
+## Everyday CLI
 
 ```text
+trust --intent "<outcome>"    verify the current change
+trust status                  show current state and one recommended next step
+trust enable github           add protected CI after a trusted local run
 trust try                     show the bundled broken-versus-fixed proof
-trust status [repository]     show current state and the single best next action
-trust start [repository]      go from one intent sentence to a local verdict
-trust init [repository]       discover verification and generate trust YAML
-trust setup [repository]      bootstrap strict policy and separate expiring keys
-trust enable github           upgrade local setup to protected merge enforcement
-trust authority:keygen        generate an Ed25519 authority identity
-trust authority:register      register an approver or reporter public key
-trust authority:list          inspect fingerprints and key lifecycle state
-trust authority:revoke        revoke an identity with an auditable reason
-trust ci:init                 generate a fail-closed GitHub Actions workflow
-trust policy:digest           print the canonical out-of-band policy trust root
-trust schema:export           export JSON Schemas for editor autocomplete
-trust contract:init           create an evidence-linked draft contract
-trust contract:approve        validate, bind, and sign a contract
-trust doctor                  validate policy references and adapter readiness
-trust inspect [repository]    print discovery and the configured graph
-trust plan <contract>         validate intent and select relevant evidence
-trust verify                  execute selected checks, invariants, and QA
-trust report <report.json>    render terminal, Markdown, or JSON output
-trust explain [evidence]      explain the latest verdict or one evidence result
-trust report:verify           verify report integrity, policy, and signature
-trust report:attest           sign a completed report in a separate trust context
-trust audit:append            append a signed report to a hash-chained journal
-trust audit:verify            verify journal links, anchors, reports, and trust roots
-trust reports:prune           preview or confirm bounded local report retention
-trust learn <report.json>     propose reusable verification improvements
-trust learn-incident <file>   turn an incident model into proposals
 ```
 
+That is the complete everyday command surface. The guided command handles discovery, local policy,
+the change contract, evidence selection, execution, and the verdict. Existing low-level commands
+remain available for custom policy, authority, attestation, and report automation; run
+`trust --help --all` for that expert reference.
+
 ## Developer and agent interface
+
+This repository publishes one npm package. The directories under `packages/` are internal source
+modules compiled together for the `trust` executable; they are not independently versioned,
+published, or supported as package imports. See [the architecture](docs/architecture.md) and
+[`packages/README.md`](packages/README.md) for that boundary.
 
 `trust status` is the orientation command for humans, scripts, and coding agents. It reports Git,
 policy, contract, last-run, and GitHub-enforcement state, then returns one recommended next action.
 Use `trust status --format json` for its versioned machine contract; the matching JSON Schema ships as
 `schemas/status.schema.json`. Guided start JSON is similarly defined by `schemas/start.schema.json`.
 
-`start`, `status`, `inspect`, `plan`, `verify`, and `explain` support clean JSON output. `plan --no-write`
+The guided command and `status` support clean JSON output. Expert `inspect`, `plan`, `verify`, and
+`explain` commands do as well. `plan --no-write`
 previews evidence selection without changing the repository. `verify --format json` suppresses
 GitHub annotations so standard output remains parseable; generated CI uses terminal mode to retain
 summaries, outputs, and annotations. See [AGENTS.md](AGENTS.md) for the repository-safe agent loop,
@@ -146,7 +111,7 @@ trust boundaries, and exit-code contract. From this source checkout, use `pnpm -
 when parsing JSON so the package-manager script banner is suppressed; an installed `trust` binary
 needs no wrapper.
 
-`trust plan`, `trust start`, and `trust verify` derive changed files from Git by default. Pass `--base <ref>`
+The guided command, `trust plan`, and `trust verify` derive changed files from Git by default. Pass `--base <ref>`
 to include committed changes since a merge base. `--changed` remains available for isolated fixtures
 such as the broken-versus-fixed demo and is recorded as an explicit change-set source in provenance.
 

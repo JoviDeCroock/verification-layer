@@ -14,27 +14,38 @@ async function trust(args: string[]) {
 }
 
 describe("human and agent CLI experience", () => {
-  it("orients users before presenting grouped expert commands", async () => {
+  it("shows only the everyday workflow unless expert commands are requested", async () => {
     const help = await trust(["--help"]);
     expect(help.exitCode, help.stderr).toBe(0);
-    expect(help.stdout.indexOf("Start here:")).toBeLessThan(help.stdout.indexOf("Core workflow:"));
-    expect(help.stdout).toContain("trust status    See current state");
-    expect(help.stdout).toContain("Policy and contracts:");
-    expect(help.stdout).toContain("Authority and CI:");
-    expect(help.stdout).toContain("Reports and learning:");
-    expect(help.stdout).toContain("Automation: add --format json to start, status");
+    expect(help.stdout).toContain("Everyday workflow:");
+    expect(help.stdout).toContain('trust --intent "<outcome>"');
+    expect(help.stdout).toContain("That is the complete everyday workflow.");
+    expect(help.stdout).not.toContain("Policy and contracts:");
+    expect(help.stdout).not.toContain("Reports and learning:");
 
-    const commandHelp = await trust(["start", "--help"]);
+    const allHelp = await trust(["--help", "--all"]);
+    expect(allHelp.exitCode, allHelp.stderr).toBe(0);
+    expect(allHelp.stdout).toContain("Everyday workflow:");
+    expect(allHelp.stdout).toContain("Core workflow:");
+    expect(allHelp.stdout).toContain("Policy and contracts:");
+    expect(allHelp.stdout).toContain("Authority and CI:");
+    expect(allHelp.stdout).toContain("Reports and learning:");
+
+    const shorthandAllHelp = await trust(["--all"]);
+    expect(shorthandAllHelp.exitCode, shorthandAllHelp.stderr).toBe(0);
+    expect(shorthandAllHelp.stdout).toContain("Policy and contracts:");
+
+    const commandHelp = await trust(["--intent", "A safe password reset", "--help"]);
     expect(commandHelp.exitCode, commandHelp.stderr).toBe(0);
     expect(commandHelp.stdout).toContain("--intent <text>");
-    expect(commandHelp.stdout).not.toContain("Start here:");
+    expect(commandHelp.stdout).not.toContain("Everyday workflow:");
   });
 
   it("turns missing-file failures into a recovery-oriented message", async () => {
     const result = await trust(["doctor", "--config", "/tmp/trust-file-that-does-not-exist"]);
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("Required file not found");
-    expect(result.stderr).toContain("Run trust status for the recommended setup step");
+    expect(result.stderr).toContain("Run trust status for the recommended recovery step");
     expect(result.stderr).not.toContain("ENOENT");
   });
 

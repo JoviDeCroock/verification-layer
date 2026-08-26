@@ -1,27 +1,29 @@
 # Executable Trust agent guide
 
-Use the trust interface as the source of truth for change verification. Start every unfamiliar task
-with:
+Use the trust interface as the source of truth for change verification. Start an unfamiliar task
+with one read-only orientation command:
 
 ```sh
 pnpm --silent trust status --format json
-pnpm --silent trust inspect --format json
 ```
 
 The status response is versioned and names one recommended next action. Its JSON Schema is
 `schemas/status.schema.json`. Discovery includes the proposed policy, while `inspect --config
 trust.yaml --format json` also includes the configured verification graph.
 
-For first-run automation, pass the intent explicitly and request the versioned start result:
+After making a change, pass the intent explicitly to the single guided verification command:
 
 ```sh
-pnpm --silent trust start --intent "Describe the user-visible outcome" --format json
+pnpm --silent trust --intent "Describe the user-visible outcome" --format json
 ```
 
 The response is either `completed` with the full trust report or `no_changes` with a recovery action;
 its schema is `schemas/start.schema.json`.
 
-For a changed repository, preview selection without writing artifacts:
+The guided command discovers or loads policy, derives the Git change set, creates the local contract,
+selects and runs evidence, and returns the verdict. Use the low-level `plan` and `verify` commands
+only when working with an existing custom or attested policy. To preview that expert path without
+writing artifacts:
 
 ```sh
 pnpm --silent trust plan .trust/contracts/current.yaml \

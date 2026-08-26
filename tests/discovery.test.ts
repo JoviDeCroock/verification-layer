@@ -30,4 +30,17 @@ describe("production policy discovery", () => {
       expect.arrayContaining([expect.stringContaining("repository-wide starter surface")]),
     );
   });
+
+  it("does not promote a nested example Playwright config into a root verifier", async () => {
+    const report = await discoverRepository(".");
+
+    expect(report.found).toContainEqual({ label: "Playwright" });
+    expect(report.config.verifiers).not.toContainEqual(
+      expect.objectContaining({ id: "playwright" }),
+    );
+    expect(report.config.surfaces).toHaveLength(1);
+    expect(report.config.surfaces[0]).toMatchObject({ id: "repository" });
+    expect(report.config.surfaces[0]?.requires).not.toContain("playwright");
+    expect(report.potentialGaps).toContain("No E2E command was detected.");
+  });
 });

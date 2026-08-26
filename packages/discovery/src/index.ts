@@ -157,13 +157,11 @@ export async function discoverRepository(rootInput: string): Promise<DiscoveryRe
   const testFiles = await files(root, ["**/*.{test,spec}.{ts,tsx,js,jsx,mjs,cjs}"]);
   if (dep("vitest") || has(/vitest\.config\.(ts|js|mjs|cjs)$/))
     found.push({ label: "Vitest", detail: `${testFiles.length} test file(s)` });
-  const playwright = await files(root, [
-    "playwright.config.{ts,js,mjs,cjs}",
-    "**/playwright.config.{ts,js,mjs,cjs}",
-  ]);
+  const rootPlaywright = await files(root, ["playwright.config.{ts,js,mjs,cjs}"]);
+  const playwright = await files(root, ["**/playwright.config.{ts,js,mjs,cjs}"]);
   if (playwright.length || dep("@playwright/test")) found.push({ label: "Playwright" });
   const verifiers: TrustConfig["verifiers"] = [];
-  if ((playwright.length || dep("@playwright/test")) && packageManager) {
+  if (rootPlaywright.length && packageManager) {
     verifiers.push({
       id: "playwright",
       label: "Discovered Playwright suite",
@@ -229,11 +227,7 @@ export async function discoverRepository(rootInput: string): Promise<DiscoveryRe
     });
 
   const potentialGaps: string[] = [];
-  if (
-    !checks.some((check) => check.kind === "e2e") &&
-    !playwright.length &&
-    !dep("@playwright/test")
-  )
+  if (!checks.some((check) => check.kind === "e2e") && !rootPlaywright.length)
     potentialGaps.push("No E2E command was detected.");
   if (!knowledge.some((file) => /AGENTS\.md$|CLAUDE\.md$/.test(file)))
     potentialGaps.push("No agent navigation instructions were found.");

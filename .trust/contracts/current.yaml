@@ -1,0 +1,43 @@
+version: 1
+id: present-one-guided-everyday-cli-and-publish-the-repository-as-one-npm-pa
+intent: Present one guided everyday CLI and publish the repository as one npm package with internal
+  source modules
+expected_behaviors:
+  - id: primary-behavior
+    description: Present one guided everyday CLI and publish the repository as one npm package with
+      internal source modules
+    evidence:
+      - typecheck
+      - lint
+      - test
+      - build
+affected_surfaces:
+  - repository
+risks: []
+required_evidence:
+  - typecheck
+  - lint
+  - test
+  - build
+qa_missions:
+  - id: primary-behavior
+    title: Present one guided everyday CLI and publish the repository as one npm package with internal
+      source modules
+    objective: Present one guided everyday CLI and publish the repository as one npm package with
+      internal source modules
+    derived_from:
+      - Present one guided everyday CLI and publish the repository as one npm package with internal
+        source modules
+    viewport: desktop
+    generation:
+      method: deterministic
+      generator: executable-trust-layer/intent-heuristics
+      version: "1"
+      input_sha256: b5cb6794211e5c3a5a1d46f635acdca14692af4b53593a6314bfb4651a0ac93b
+excluded: []
+approval:
+  status: approved
+  approved_by: local-user
+  approved_at: 2026-08-26T17:40:25.738Z
+  content_sha256: 9cf8adca782cc4297c2176fe68199824057e7928dd87193e1294cb9325dc819b
+  method: local

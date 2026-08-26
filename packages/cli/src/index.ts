@@ -79,6 +79,7 @@ import { appendAuditJournal, parseAuditJournal } from "../../core/src/audit.js";
 import { generateMissions } from "../../qa/src/index.js";
 
 const cli = cac("trust");
+cli.option("--all", "Show the complete expert command reference");
 const list = (value: unknown): string[] => {
   if (Array.isArray(value)) return value.flatMap((item) => String(item).split(",")).filter(Boolean);
   if (typeof value === "string") return value.split(",").filter(Boolean);
@@ -129,7 +130,7 @@ function friendlyErrorMessage(error: unknown): string {
   const nodeError = error as NodeJS.ErrnoException & { path?: string };
   const issues = (error as { issues?: Array<{ path: PropertyKey[]; message: string }> }).issues;
   if (nodeError.code === "ENOENT")
-    return `Required file not found: ${nodeError.path ?? "unknown path"}. Run trust status for the recommended setup step.`;
+    return `Required file not found: ${nodeError.path ?? "unknown path"}. Run trust status for the recommended recovery step.`;
   if (Array.isArray(issues))
     return `Trust data is invalid:\n${issues
       .slice(0, 8)
@@ -150,7 +151,7 @@ async function fileExists(file: string): Promise<boolean> {
 async function promptForIntent(): Promise<string> {
   if (!process.stdin.isTTY)
     throw new Error(
-      'Pass --intent with the user-visible outcome, for example: trust start --intent "Users can reset their password safely".',
+      'Pass --intent with the user-visible outcome, for example: trust --intent "Users can reset their password safely".',
     );
   const input = createInterface({ input: process.stdin, output: process.stdout });
   try {
@@ -346,7 +347,7 @@ cli.command("try", "See the broken-versus-fixed product proof with no setup").ac
   else for (const item of fixedFailures) console.log(`${pc.yellow("!")} ${item.summary}`);
   console.log(`\n${proof.thesis}`);
   console.log(
-    '\nNext: run `trust start --intent "Describe the user-visible outcome"` in your repository.',
+    '\nNext: run `trust --intent "Describe the user-visible outcome"` in your repository.',
   );
 });
 
@@ -428,7 +429,7 @@ cli
     else if (!config)
       next = {
         action: "start",
-        command: 'trust start --intent "Describe the user-visible outcome"',
+        command: 'trust --intent "Describe the user-visible outcome"',
         reason: "Discovery is ready; provide the one intent it cannot infer.",
       };
     else if (policyMode === "custom")
@@ -450,7 +451,7 @@ cli
         action: "rerun_verification",
         command:
           policyMode === "local"
-            ? 'trust start --intent "Describe the user-visible outcome"'
+            ? 'trust --intent "Describe the user-visible outcome"'
             : "trust verify --help",
         reason:
           "The latest generated report is unreadable; rerun evidence to replace it atomically.",
@@ -465,7 +466,7 @@ cli
     else if (policyMode === "local" && !changeSet.changedFiles.length)
       next = {
         action: "make_change",
-        command: 'trust start --intent "Describe the user-visible outcome"',
+        command: 'trust --intent "Describe the user-visible outcome"',
         reason:
           "The local policy is ready; make a Git-visible product change before running evidence.",
       };
@@ -484,7 +485,7 @@ cli
     else if (policyMode === "local")
       next = {
         action: "start",
-        command: 'trust start --intent "Describe the user-visible outcome"',
+        command: 'trust --intent "Describe the user-visible outcome"',
         reason: "The local policy is ready to verify the current Git change.",
       };
     else if (!contractFile)
@@ -645,11 +646,11 @@ cli
     ];
     if (!evidence.length)
       throw new Error(
-        `No executable evidence was discovered. Add a test, build, typecheck, or verifier, then rerun trust start. Policy: ${configFile}`,
+        `No executable evidence was discovered. Add a test, build, typecheck, or verifier, then rerun trust --intent. Policy: ${configFile}`,
       );
     if (!config.surfaces.length)
       throw new Error(
-        `No product surface was discovered. Add a surface to ${configFile}, then rerun trust start.`,
+        `No product surface was discovered. Add a surface to ${configFile}, then rerun trust --intent.`,
       );
     if (format === "terminal") {
       console.log(pc.bold(`EXECUTABLE TRUST — ${discovery.name}`));
@@ -661,7 +662,7 @@ cli
       );
     }
     if (!changeSet.changedFiles.length) {
-      const command = `trust start --intent ${shellArgument(intent)}`;
+      const command = `trust --intent ${shellArgument(intent)}`;
       const reason = "No Git changes are currently available to verify.";
       if (format === "json")
         console.log(
@@ -1147,7 +1148,7 @@ cli
       const newest = await newestYamlFile(path.join(repositoryRoot, ".trust", "contracts"));
       if (!newest)
         throw new Error(
-          "No generated contract was found. Pass --contract or run trust start first.",
+          "No generated contract was found. Pass --contract or run trust --intent first.",
         );
       contractFile = newest;
     }
@@ -2167,23 +2168,22 @@ cli
   });
 
 cli.usage("[command] [options]");
-cli.example('trust start --intent "Users can reset their password safely"');
+cli.example('trust --intent "Users can reset their password safely"');
 cli.example("trust status");
-cli.example("trust explain test");
-cli.example("trust enable github");
 cli.help((sections) => {
   const commandIndex = sections.findIndex((section) => section.title === "Commands");
   if (commandIndex === -1) return sections;
-  const startHere = {
-    title: "Start here",
+  const everydayCommands = {
+    title: "Everyday workflow",
     body: [
-      "  trust try       See why ordinary tests are not enough",
-      "  trust status    See current state and one recommended next command",
-      "  trust start     Verify a real change from one intent sentence",
-      "  trust explain   Understand a verdict or evidence result",
-      "  trust enable github  Upgrade local evidence to protected CI",
+      '  trust --intent "<outcome>"  Verify the current change',
+      "  trust status                See state and one recommended next step",
+      "  trust enable github         Add protected CI after a trusted local run",
+      "  trust try                   See the bundled broken-versus-fixed proof",
       "",
-      "Automation: add --format json to start, status, inspect, plan, verify, or explain.",
+      "That is the complete everyday workflow.",
+      "Run trust --help --all only when you need policy, authority, or report internals.",
+      "Automation: add --format json to trust --intent or trust status.",
     ].join("\n"),
   };
   const groupedCommands = [
@@ -2236,19 +2236,28 @@ cli.help((sections) => {
       ].join("\n"),
     },
   ];
-  return [
-    ...sections.slice(0, commandIndex),
-    startHere,
-    ...groupedCommands,
-    ...sections
-      .slice(commandIndex + 1)
-      .filter((section) => !section.title?.startsWith("For more info")),
-  ];
+  const before = sections.slice(0, commandIndex);
+  const after = sections
+    .slice(commandIndex + 1)
+    .filter((section) => !section.title?.startsWith("For more info"));
+  return process.argv.includes("--all")
+    ? [...before, everydayCommands, ...groupedCommands, ...after]
+    : [...before, everydayCommands, ...after];
 });
 cli.version(TRUST_VERSION);
 
 try {
-  if (process.argv.length === 2) process.argv.push("start");
+  const arguments_ = process.argv.slice(2);
+  const rootOnlyOptions = new Set(["--help", "-h", "--version", "-v", "--all"]);
+  if (arguments_.length === 1 && arguments_[0] === "--all") process.argv.push("--help");
+  if (
+    arguments_.length === 0 ||
+    (arguments_.some((argument) => argument === "--intent") &&
+      !arguments_.some((argument) => cli.commands.some((command) => command.name === argument))) ||
+    (arguments_[0]?.startsWith("-") &&
+      arguments_.some((argument) => !rootOnlyOptions.has(argument)))
+  )
+    process.argv.splice(2, 0, "start");
   const parsed = cli.parse(process.argv, { run: false });
   if (!cli.matchedCommand && parsed.args[0] && !parsed.options.help && !parsed.options.version) {
     const unknown = String(parsed.args[0]);
