@@ -8,23 +8,23 @@ import {
   type ChangeContract,
   type Evidence,
   type TrustConfig,
-} from "../packages/core/src/index.js";
-import { verifyChange } from "../packages/core/src/verify.js";
+} from "../src/core/index.js";
+import { verifyChange } from "../src/core/verify.js";
 import {
   approvalDigest,
   changeSetDigest,
   sha256,
   validateChangedFiles,
-} from "../packages/core/src/provenance.js";
+} from "../src/core/provenance.js";
 import {
   approvalSignatureDigest,
   createReportAttestation,
   generateAuthorityKeyPair,
   signDigest,
   verifyReportAttestation,
-} from "../packages/core/src/attestations.js";
-import { validateReportSemantics } from "../packages/core/src/report-validation.js";
-import { reviewContract } from "../packages/contracts/src/index.js";
+} from "../src/core/attestations.js";
+import { validateReportSemantics } from "../src/core/report-validation.js";
+import { reviewContract } from "../src/contracts/index.js";
 
 const temporaryDirectories: string[] = [];
 

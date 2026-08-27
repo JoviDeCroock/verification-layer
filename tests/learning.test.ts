@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { TrustReport } from "../packages/core/src/index.js";
-import { proposeLearnings } from "../packages/learning/src/index.js";
+import type { TrustReport } from "../src/core/index.js";
+import { proposeLearnings } from "../src/learning/index.js";
 
 describe("learning loop", () => {
   it("proposes but does not apply policy changes", () => {

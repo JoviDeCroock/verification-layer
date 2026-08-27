@@ -12,7 +12,7 @@ import {
   trustConfigSchema,
   trustReportSchema,
   verificationPlanSchema,
-} from "../packages/core/src/index.js";
+} from "../src/core/index.js";
 
 const definitions = [
   {

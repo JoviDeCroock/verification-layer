@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { trustConfigSchema, type Evidence } from "../packages/core/src/index.js";
-import { redactEvidence } from "../packages/core/src/redaction.js";
+import { trustConfigSchema, type Evidence } from "../src/core/index.js";
+import { redactEvidence } from "../src/core/redaction.js";
 
 describe("evidence redaction", () => {
   it("removes configured credentials, environment secrets, and common token formats", () => {

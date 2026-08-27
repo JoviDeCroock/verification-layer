@@ -2,8 +2,8 @@ import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { loadTrustConfig } from "../packages/core/src/files.js";
-import { runProcess } from "../packages/runner/src/index.js";
+import { loadTrustConfig } from "../src/core/files.js";
+import { runProcess } from "../src/runner/index.js";
 
 async function setup(repository: string) {
   return runProcess({
@@ -11,7 +11,7 @@ async function setup(repository: string) {
     args: [
       "--import",
       "tsx",
-      "packages/cli/src/index.ts",
+      "src/cli/index.ts",
       "setup",
       repository,
       "--approver",
@@ -32,7 +32,7 @@ async function doctor(repository: string) {
     args: [
       "--import",
       "tsx",
-      "packages/cli/src/index.ts",
+      "src/cli/index.ts",
       "doctor",
       "--config",
       path.join(repository, "trust.yaml"),

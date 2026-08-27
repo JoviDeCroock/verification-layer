@@ -2,12 +2,12 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { runProcess } from "../packages/runner/src/index.js";
+import { runProcess } from "../src/runner/index.js";
 
 async function trust(args: string[]) {
   return runProcess({
     executable: process.execPath,
-    args: ["--import", "tsx", "packages/cli/src/index.ts", ...args],
+    args: ["--import", "tsx", "src/cli/index.ts", ...args],
     cwd: process.cwd(),
     timeoutMs: 30_000,
   });

@@ -20,13 +20,13 @@
     "url": "git+https://github.com/JoviDeCroock/verification-layer.git"
   },
   "bin": {
-    "trust": "./dist/packages/cli/src/index.js"
+    "trust": "./dist/cli/index.js"
   },
   "files": [
     "AGENTS.md",
     "CHANGELOG.md",
     "LICENSE",
-    "dist/packages",
+    "dist",
     "docs",
     "evals",
     "examples/demo-app/.trust/runs/proof-summary.json",
@@ -48,7 +48,7 @@
     "eval:missions:review": "node --import tsx scripts/review-missions.ts",
     "eval:missions:select": "node --import tsx scripts/select-mission-model.ts",
     "format": "oxfmt .",
-    "lint": "oxlint --deny-warnings packages scripts tests examples/demo-app/src examples/demo-app/qa examples/demo-app/e2e examples/demo-app/playwright.config.ts",
+    "lint": "oxlint --deny-warnings src scripts tests examples/demo-app/src examples/demo-app/qa examples/demo-app/e2e examples/demo-app/playwright.config.ts",
     "prepack": "pnpm build:cli",
     "prepublishOnly": "pnpm check",
     "release": "pnpm build:cli && changeset publish",
@@ -56,7 +56,7 @@
     "schemas": "node --import tsx scripts/generate-schemas.ts",
     "schemas:check": "node --import tsx scripts/generate-schemas.ts --check",
     "test": "vitest run --testTimeout=15000",
-    "trust": "node --import tsx packages/cli/src/index.ts",
+    "trust": "node --import tsx src/cli/index.ts",
     "typecheck": "tsc --noEmit",
     "version": "changeset version"
   },

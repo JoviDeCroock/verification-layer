@@ -2,10 +2,10 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { loadTrustConfig, loadTrustReport } from "../packages/core/src/files.js";
-import { runProcess } from "../packages/runner/src/index.js";
+import { loadTrustConfig, loadTrustReport } from "../src/core/files.js";
+import { runProcess } from "../src/runner/index.js";
 
-const cli = path.resolve("packages/cli/src/index.ts");
+const cli = path.resolve("src/cli/index.ts");
 
 function stripAnsi(value: string) {
   return value

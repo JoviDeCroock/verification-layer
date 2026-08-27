@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import YAML from "yaml";
-import { renderGitHubWorkflow } from "../packages/cli/src/github.js";
+import { renderGitHubWorkflow } from "../src/cli/github.js";
 
 describe("GitHub workflow onboarding", () => {
   it("pins verification to the PR head and uses a secret-backed trusted reporter", () => {

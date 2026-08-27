@@ -21,10 +21,11 @@ The product is a local-first TypeScript trust authority organized into focused i
 - `cli/ci`: escaped GitHub summaries, outputs, annotations, and strict workflow generation.
 - `schemas`: distributable editor contracts generated and drift-checked from the runtime schemas.
 
-These modules compile and ship together as the single `executable-trust-layer` npm package. They do
-not have independent manifests, versions, dependency declarations, or release lifecycles; the root
-`package.json` owns that metadata and exposes the installed `trust` executable. The `packages/`
-directory is a source-code boundary, not a pnpm workspace or a collection of public package APIs.
+These modules live under `src/` and compile and ship together as the single
+`executable-trust-layer` npm package. They do not have independent manifests, versions, dependency
+declarations, or release lifecycles; the root `package.json` owns that metadata and exposes the
+installed `trust` executable. Module directories are source-code boundaries, not pnpm workspaces or
+public package APIs.
 
 The onboarding surface composes those modules without weakening them. `trust --intent` performs
 discovery, writes a local-only policy, derives the Git change set, creates and locally approves the

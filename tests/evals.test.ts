@@ -12,7 +12,7 @@ import {
   selectMissionProposalModel,
   type MissionEvalCandidate,
   type MissionModelReport,
-} from "../packages/evals/src/index.js";
+} from "../src/evals/index.js";
 import { readFile } from "node:fs/promises";
 import { missionPromptCacheKey, openAIMissionRequest } from "../scripts/openai-mission-request.js";
 
@@ -213,9 +213,7 @@ describe("mission generation evaluations", () => {
       proposal_model: null,
       automated_recommendation: null,
     });
-    expect(researchDecision.candidates[2]!.review_reasons.join(" ")).toContain(
-      "research-only",
-    );
+    expect(researchDecision.candidates[2]!.review_reasons.join(" ")).toContain("research-only");
     const decision = selectMissionProposalModel(
       { ...(await modelPolicy()), evaluation_mode: "executed_pilot" },
       [report],

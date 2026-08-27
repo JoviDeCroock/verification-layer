@@ -5,9 +5,9 @@
     "declarationMap": true,
     "noEmit": false,
     "outDir": "dist",
-    "rootDir": ".",
+    "rootDir": "src",
     "sourceMap": true
   },
-  "include": ["packages/**/*.ts"],
+  "include": ["src/**/*.ts"],
   "exclude": ["tests/**", "examples/**", "scripts/**"]
 }

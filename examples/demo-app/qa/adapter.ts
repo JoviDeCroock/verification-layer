@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import type { QaAdapter, QaMissionContext, QaObservation } from "../../../packages/qa/src/index.js";
+import type { QaAdapter, QaMissionContext, QaObservation } from "../../../src/qa/index.js";
 
 async function reset(context: QaMissionContext): Promise<void> {
   const response = await context.context.request.post(`${context.previewUrl}/api/testing/reset`);

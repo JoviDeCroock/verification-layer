@@ -7,7 +7,7 @@ import {
   missionEvalReviewSchema,
   missionEvalSuiteSchema,
   renderMissionEvalReviewMarkdown,
-} from "../packages/evals/src/index.js";
+} from "../src/evals/index.js";
 
 function argument(name: string): string | undefined {
   const index = process.argv.indexOf(name);

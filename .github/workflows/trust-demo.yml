@@ -32,7 +32,7 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm check
       - run: pnpm build:cli
-      - run: node dist/packages/cli/src/index.js --version
+      - run: node dist/cli/index.js --version
       - run: pnpm trust doctor --config examples/demo-app/trust.yaml --contract examples/demo-app/change-contract.yaml
       - run: pnpm demo:prove
       - run: pnpm trust report:verify examples/demo-app/.trust/runs/broken/report.json --config examples/demo-app/trust.yaml

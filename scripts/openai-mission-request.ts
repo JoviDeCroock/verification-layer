@@ -1,4 +1,4 @@
-import { missionPromptCacheKey } from "../packages/evals/src/index.js";
+import { missionPromptCacheKey } from "../src/evals/index.js";
 
 interface MissionRequestOptions {
   model: string;

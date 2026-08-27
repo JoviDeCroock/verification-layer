@@ -45,7 +45,7 @@ pnpm release:check
 
 - `LICENSE` and `CHANGELOG.md`;
 - `AGENTS.md`, `README.md`, and the public documentation;
-- the compiled `trust` CLI and runtime packages;
+- the compiled `trust` CLI and runtime modules;
 - versioned JSON Schemas; and
 - the bundled proof summary.
 

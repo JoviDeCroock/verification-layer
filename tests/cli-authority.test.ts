@@ -3,9 +3,9 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import YAML from "yaml";
-import { runProcess } from "../packages/runner/src/index.js";
-import { trustConfigSchema } from "../packages/core/src/index.js";
-import { sha256 } from "../packages/core/src/provenance.js";
+import { runProcess } from "../src/runner/index.js";
+import { trustConfigSchema } from "../src/core/index.js";
+import { sha256 } from "../src/core/provenance.js";
 
 const temporaryDirectories: string[] = [];
 const authorityTestTimeoutMs = 45_000;
@@ -21,7 +21,7 @@ afterEach(async () => {
 async function trust(args: string[], env?: Record<string, string>) {
   return runProcess({
     executable: process.execPath,
-    args: ["--import", "tsx", "packages/cli/src/index.ts", ...args],
+    args: ["--import", "tsx", "src/cli/index.ts", ...args],
     cwd: process.cwd(),
     timeoutMs: authorityTestTimeoutMs,
     ...(env ? { env } : {}),

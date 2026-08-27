@@ -1,11 +1,11 @@
 version: 1
-id: present-one-guided-everyday-cli-and-publish-the-repository-as-one-npm-pa
-intent: Present one guided everyday CLI and publish the repository as one npm package with internal
-  source modules
+id: move-all-internal-implementation-modules-into-one-root-src-tree-while-pr
+intent: Move all internal implementation modules into one root src tree while preserving the trust
+  CLI and package behavior
 expected_behaviors:
   - id: primary-behavior
-    description: Present one guided everyday CLI and publish the repository as one npm package with
-      internal source modules
+    description: Move all internal implementation modules into one root src tree while preserving the
+      trust CLI and package behavior
     evidence:
       - typecheck
       - lint
@@ -21,23 +21,23 @@ required_evidence:
   - build
 qa_missions:
   - id: primary-behavior
-    title: Present one guided everyday CLI and publish the repository as one npm package with internal
-      source modules
-    objective: Present one guided everyday CLI and publish the repository as one npm package with
-      internal source modules
+    title: Move all internal implementation modules into one root src tree while preserving the trust
+      CLI and package behavior
+    objective: Move all internal implementation modules into one root src tree while preserving the
+      trust CLI and package behavior
     derived_from:
-      - Present one guided everyday CLI and publish the repository as one npm package with internal
-        source modules
+      - Move all internal implementation modules into one root src tree while preserving the trust
+        CLI and package behavior
     viewport: desktop
     generation:
       method: deterministic
       generator: executable-trust-layer/intent-heuristics
       version: "1"
-      input_sha256: b5cb6794211e5c3a5a1d46f635acdca14692af4b53593a6314bfb4651a0ac93b
+      input_sha256: 08c44b4db0e2884c9645610e725483cbaa5e1b4c520e17bfb4f5e0418153c4d2
 excluded: []
 approval:
   status: approved
   approved_by: local-user
-  approved_at: 2026-08-26T17:42:34.331Z
-  content_sha256: 9cf8adca782cc4297c2176fe68199824057e7928dd87193e1294cb9325dc819b
+  approved_at: 2026-08-26T18:12:25.722Z
+  content_sha256: 9aa76694722c5b0c1976f3774a6807fc63e12d497d63561abc15563a79b01248
   method: local

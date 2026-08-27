@@ -2,7 +2,7 @@ import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { writeJsonFile, writeTextFile } from "../packages/core/src/files.js";
+import { writeJsonFile, writeTextFile } from "../src/core/files.js";
 
 describe("atomic report persistence", () => {
   it("atomically replaces files without leaving staging artifacts", async () => {

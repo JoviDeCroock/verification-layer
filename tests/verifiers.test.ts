@@ -3,9 +3,9 @@ import {
   changeContractSchema,
   trustConfigSchema,
   verificationPlanSchema,
-} from "../packages/core/src/index.js";
-import { runSelectedVerifiers } from "../packages/verifiers/src/index.js";
-import { approvalDigest } from "../packages/core/src/provenance.js";
+} from "../src/core/index.js";
+import { runSelectedVerifiers } from "../src/verifiers/index.js";
+import { approvalDigest } from "../src/core/provenance.js";
 
 afterEach(() => {
   vi.unstubAllGlobals();

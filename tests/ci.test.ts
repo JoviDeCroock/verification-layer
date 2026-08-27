@@ -2,8 +2,8 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import type { TrustReport } from "../packages/core/src/index.js";
-import { publishGitHubReport, renderGitHubSummary } from "../packages/cli/src/ci.js";
+import type { TrustReport } from "../src/core/index.js";
+import { publishGitHubReport, renderGitHubSummary } from "../src/cli/ci.js";
 
 function report(): TrustReport {
   return {

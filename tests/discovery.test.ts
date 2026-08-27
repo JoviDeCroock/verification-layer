@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { discoverRepository } from "../packages/discovery/src/index.js";
+import { discoverRepository } from "../src/discovery/index.js";
 
 describe("production policy discovery", () => {
   it("generates fail-closed authority and execution defaults", async () => {

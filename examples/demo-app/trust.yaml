@@ -129,7 +129,7 @@ verifiers:
     missions:
       - id: version
         executable: node
-        args: [--import, tsx, ../../packages/cli/src/index.ts, --version]
+        args: [--import, tsx, ../../src/cli/index.ts, --version]
         cwd: .
         env: {}
         expect:
@@ -141,7 +141,7 @@ verifiers:
         args:
           - --import
           - tsx
-          - ../../packages/cli/src/index.ts
+          - ../../src/cli/index.ts
           - plan
           - change-contract.yaml
           - --config

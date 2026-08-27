@@ -92,10 +92,10 @@ remain available for custom policy, authority, attestation, and report automatio
 
 ## Developer and agent interface
 
-This repository publishes one npm package. The directories under `packages/` are internal source
-modules compiled together for the `trust` executable; they are not independently versioned,
-published, or supported as package imports. See [the architecture](docs/architecture.md) and
-[`packages/README.md`](packages/README.md) for that boundary.
+This repository publishes one npm package. Its implementation lives in focused internal modules
+under `src/`, compiled together for the `trust` executable. Those modules are not independently
+versioned, published, or supported as package imports. See
+[the architecture](docs/architecture.md) for that boundary.
 
 `trust status` is the orientation command for humans, scripts, and coding agents. It reports Git,
 policy, contract, last-run, and GitHub-enforcement state, then returns one recommended next action.

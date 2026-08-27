@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "run_id": "organization-invitations-2026-08-25T16-31-50-030Z",
-  "created_at": "2026-08-25T16:31:50.030Z",
+  "run_id": "organization-invitations-2026-08-26T18-10-25-698Z",
+  "created_at": "2026-08-26T18:10:25.698Z",
   "contract": {
     "version": 1,
     "id": "organization-invitations",
@@ -182,7 +182,7 @@
   "plan": {
     "version": 1,
     "contract_id": "organization-invitations",
-    "created_at": "2026-08-25T16:31:43.476Z",
+    "created_at": "2026-08-26T18:10:04.039Z",
     "changed_files": [
       "src/worker.ts",
       "src/client.tsx"
@@ -276,26 +276,26 @@
   },
   "provenance": {
     "repository": {
-      "head_sha": "5464033f6c095a3a6030e2860dfa519558f21b81",
-      "branch": "main",
+      "head_sha": "022f1d6fb1690a4a5e9a64f7bff06c314edc74f9",
+      "branch": null,
       "dirty": true,
       "changed_files_source": "explicit",
       "base_sha": null
     },
     "digests": {
       "contract_sha256": "1322216099c82749f025a19b68b8c4e5f4fb1e11c363a520ae9ece1b5dc867ef",
-      "policy_sha256": "945800eee71a66057f63cfd0b92d6e9b83dc5b409b522b35e5bdbda6633364eb",
-      "plan_sha256": "93afea3a094615859b84b17035966f2194962e031fc20d9c0719d1a333781e91",
+      "policy_sha256": "ff15f041adf93510255c318cc1d0eafd56ddac0684dc9f0848d576ca14e91fb6",
+      "plan_sha256": "42da0dcd282ddc1d4845d915dce747896342f1a07a1c6a0a44c9d4b1b6ecf266",
       "change_set_sha256": "bf906672942deba40b15d2e4f1c7cb46cd4839af28d645f163cf0e35566bc9d4"
     },
     "runtime": {
       "trust_version": "0.1.0",
-      "node": "v22.22.3",
+      "node": "v22.22.0",
       "platform": "darwin",
       "arch": "arm64"
     },
     "target": {
-      "preview_origin": "http://127.0.0.1:4317"
+      "preview_origin": "http://127.0.0.1:44317"
     }
   },
   "evidence": [
@@ -341,9 +341,9 @@
       "status": "verified",
       "summary": "Preact client build passed.",
       "command": "pnpm build",
-      "duration_ms": 517,
+      "duration_ms": 977,
       "stdout": "",
-      "stderr": "$ pnpm build:client\n$ esbuild src/client.tsx --bundle --format=esm --sourcemap --outfile=public/app.js\n\n  public/app.js       35.5kb\n  public/app.js.map  191.6kb\n\n⚡ Done in 7ms\n",
+      "stderr": "$ pnpm build:client\n$ esbuild src/client.tsx --bundle --format=esm --sourcemap --outfile=public/app.js\n\n  public/app.js       35.5kb\n  public/app.js.map  191.6kb\n\n⚡ Done in 11ms\n",
       "measurements": {
         "attempt": 1,
         "max_attempts": 1
@@ -356,7 +356,7 @@
       "status": "verified",
       "summary": "TypeScript passed.",
       "command": "pnpm --dir ../.. typecheck",
-      "duration_ms": 464,
+      "duration_ms": 1063,
       "stdout": "",
       "stderr": "$ tsc --noEmit\n",
       "measurements": {
@@ -371,8 +371,8 @@
       "status": "verified",
       "summary": "Unit tests passed.",
       "command": "pnpm test",
-      "duration_ms": 617,
-      "stdout": "\n RUN  v4.1.11 /Users/jovi/Documents/ChatGPT/verification-layer/examples/demo-app\n\n\n Test Files  1 passed (1)\n      Tests  3 passed (3)\n   Start at  18:31:49\n   Duration  114ms (transform 14ms, setup 0ms, import 22ms, tests 2ms, environment 0ms)\n\n",
+      "duration_ms": 1359,
+      "stdout": "\n RUN  v4.1.11 /Users/jovi/.codex/worktrees/cf1e/verification-layer/examples/demo-app\n\n\n Test Files  1 passed (1)\n      Tests  3 passed (3)\n   Start at  20:10:24\n   Duration  250ms (transform 29ms, setup 0ms, import 49ms, tests 5ms, environment 0ms)\n\n",
       "stderr": "$ vitest run test\n",
       "measurements": {
         "attempt": 1,
@@ -386,7 +386,7 @@
       "status": "verified",
       "summary": "Preact client bundle: 36304 bytes within threshold on attempt 1.",
       "command": "pnpm size",
-      "duration_ms": 284,
+      "duration_ms": 638,
       "stdout": "{\"value\":36304,\"unit\":\"bytes\",\"file\":\"public/app.js\"}\n",
       "stderr": "$ node scripts/measure-bundle.mjs\n",
       "measurements": {
@@ -405,7 +405,7 @@
       "category": "request",
       "status": "verified",
       "summary": "GET /api/health satisfied its response contract.",
-      "duration_ms": 17,
+      "duration_ms": 29,
       "measurements": {
         "status": 200,
         "response_bytes": 30,
@@ -418,7 +418,7 @@
       "category": "request",
       "status": "verified",
       "summary": "POST /api/invitations satisfied its response contract.",
-      "duration_ms": 6,
+      "duration_ms": 21,
       "measurements": {
         "status": 403,
         "response_bytes": 51
@@ -430,9 +430,9 @@
       "category": "qa",
       "status": "verified",
       "summary": "An administrator invited a new user through the running UI.",
-      "duration_ms": 221,
+      "duration_ms": 238,
       "measurements": {
-        "final_url": "http://127.0.0.1:4317/",
+        "final_url": "http://127.0.0.1:44317/",
         "console_errors": 0,
         "failed_requests": 0,
         "http_error_responses": 0
@@ -452,9 +452,9 @@
       "category": "qa",
       "status": "verified",
       "summary": "A non-admin was denied and no invitation was created.",
-      "duration_ms": 197,
+      "duration_ms": 208,
       "measurements": {
-        "final_url": "http://127.0.0.1:4317/",
+        "final_url": "http://127.0.0.1:44317/",
         "console_errors": 1,
         "failed_requests": 0,
         "http_error_responses": 1
@@ -474,11 +474,11 @@
       "category": "qa",
       "status": "failed",
       "summary": "Duplicate submission counts were sequential=2, concurrent=2.",
-      "duration_ms": 313,
+      "duration_ms": 389,
       "measurements": {
         "sequential_pending_invitations": 2,
         "concurrent_pending_invitations": 2,
-        "final_url": "http://127.0.0.1:4317/",
+        "final_url": "http://127.0.0.1:44317/",
         "console_errors": 0,
         "failed_requests": 0,
         "http_error_responses": 0
@@ -498,9 +498,9 @@
       "category": "qa",
       "status": "verified",
       "summary": "An expired invitation was rejected in the acceptance journey.",
-      "duration_ms": 94,
+      "duration_ms": 130,
       "measurements": {
-        "final_url": "http://127.0.0.1:4317/accept/ff8731ce-d37b-4796-b9a6-5fa4ee17319a",
+        "final_url": "http://127.0.0.1:44317/accept/0248b77a-6bbb-457c-a9b3-30b6ca6ee1f6",
         "console_errors": 1,
         "failed_requests": 0,
         "http_error_responses": 1
@@ -520,9 +520,9 @@
       "category": "qa",
       "status": "verified",
       "summary": "The existing signup surface remained reachable and interactive.",
-      "duration_ms": 87,
+      "duration_ms": 99,
       "measurements": {
-        "final_url": "http://127.0.0.1:4317/signup",
+        "final_url": "http://127.0.0.1:44317/signup",
         "console_errors": 0,
         "failed_requests": 0,
         "http_error_responses": 0
@@ -542,9 +542,9 @@
       "category": "device",
       "status": "verified",
       "summary": "An administrator invited a new user through the running UI.",
-      "duration_ms": 204,
+      "duration_ms": 212,
       "measurements": {
-        "final_url": "http://127.0.0.1:4317/",
+        "final_url": "http://127.0.0.1:44317/",
         "console_errors": 0,
         "failed_requests": 0,
         "http_error_responses": 0
@@ -564,9 +564,9 @@
       "category": "device",
       "status": "verified",
       "summary": "A non-admin was denied and no invitation was created.",
-      "duration_ms": 146,
+      "duration_ms": 188,
       "measurements": {
-        "final_url": "http://127.0.0.1:4317/",
+        "final_url": "http://127.0.0.1:44317/",
         "console_errors": 1,
         "failed_requests": 0,
         "http_error_responses": 1
@@ -586,11 +586,11 @@
       "category": "device",
       "status": "failed",
       "summary": "Duplicate submission counts were sequential=2, concurrent=2.",
-      "duration_ms": 237,
+      "duration_ms": 307,
       "measurements": {
         "sequential_pending_invitations": 2,
         "concurrent_pending_invitations": 2,
-        "final_url": "http://127.0.0.1:4317/",
+        "final_url": "http://127.0.0.1:44317/",
         "console_errors": 0,
         "failed_requests": 0,
         "http_error_responses": 0
@@ -610,9 +610,9 @@
       "category": "device",
       "status": "verified",
       "summary": "An expired invitation was rejected in the acceptance journey.",
-      "duration_ms": 75,
+      "duration_ms": 106,
       "measurements": {
-        "final_url": "http://127.0.0.1:4317/accept/99b63da7-0736-4ea6-8e4d-e21c963a9c89",
+        "final_url": "http://127.0.0.1:44317/accept/f7f9eafe-e322-4026-b360-747fc89d814d",
         "console_errors": 1,
         "failed_requests": 0,
         "http_error_responses": 1
@@ -632,9 +632,9 @@
       "category": "device",
       "status": "verified",
       "summary": "The existing signup surface remained reachable and interactive.",
-      "duration_ms": 63,
+      "duration_ms": 82,
       "measurements": {
-        "final_url": "http://127.0.0.1:4317/signup",
+        "final_url": "http://127.0.0.1:44317/signup",
         "console_errors": 0,
         "failed_requests": 0,
         "http_error_responses": 0
@@ -654,9 +654,9 @@
       "category": "device",
       "status": "verified",
       "summary": "An administrator invited a new user through the running UI.",
-      "duration_ms": 158,
+      "duration_ms": 181,
       "measurements": {
-        "final_url": "http://127.0.0.1:4317/",
+        "final_url": "http://127.0.0.1:44317/",
         "console_errors": 0,
         "failed_requests": 0,
         "http_error_responses": 0
@@ -677,9 +677,9 @@
       "status": "verified",
       "summary": "Native Playwright suite passed.",
       "command": "../../node_modules/.bin/playwright test --config playwright.config.ts",
-      "duration_ms": 986,
-      "stdout": "\nRunning 2 tests using 1 worker\n\n  ✓  1 e2e/smoke.pw.ts:3:1 › renders the invitation product surface (174ms)\n  ✓  2 e2e/smoke.pw.ts:9:1 › exposes a healthy Worker API (31ms)\n\n  2 passed (653ms)\n",
-      "stderr": "(node:91972) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n",
+      "duration_ms": 2509,
+      "stdout": "\nRunning 2 tests using 1 worker\n\n  ✓  1 e2e/smoke.pw.ts:3:1 › renders the invitation product surface (202ms)\n  ✓  2 e2e/smoke.pw.ts:9:1 › exposes a healthy Worker API (56ms)\n\n  2 passed (1.4s)\n",
+      "stderr": "(node:34943) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n",
       "measurements": {
         "attempt": 1,
         "max_attempts": 1
@@ -691,9 +691,9 @@
       "category": "cli",
       "status": "verified",
       "summary": "CLI mission version passed.",
-      "command": "node --import tsx ../../packages/cli/src/index.ts --version",
-      "duration_ms": 532,
-      "stdout": "trust/0.1.0 darwin-arm64 node-v22.22.3\n",
+      "command": "node --import tsx ../../src/cli/index.ts --version",
+      "duration_ms": 934,
+      "stdout": "trust/0.1.0 darwin-arm64 node-v22.22.0\n",
       "stderr": "",
       "measurements": {
         "attempt": 1,
@@ -706,9 +706,9 @@
       "category": "cli",
       "status": "verified",
       "summary": "CLI mission selective-plan passed.",
-      "command": "node --import tsx ../../packages/cli/src/index.ts plan change-contract.yaml --config trust.yaml --changed src/worker.ts,src/client.tsx --output .trust/runs/cli-plan.json",
-      "duration_ms": 507,
-      "stdout": "Intent: Add organization invitations without weakening authorization or existing signup behavior.\nApproval: approved\nAuthority: local\nBehaviors: happy-path, authorization, duplicate-submission, expiration, regression\nSurfaces: team-management, authentication\nRisks: authorization, state integrity, mobile ui\nRequired evidence: typecheck, unit-tests, demo-client-bundle, playwright-ui, api-requests, trust-cli, intent-browser, intent-device\nApproved QA missions: 6\n\nSelected: client-build, typecheck, unit-tests\nInvariants: demo-client-bundle\nVerifiers: api-requests, intent-browser, intent-device, playwright-ui, trust-cli\nQA: not required\nChange set: explicit (2 file(s))\nWrote: /Users/jovi/Documents/ChatGPT/verification-layer/examples/demo-app/.trust/runs/cli-plan.json\n",
+      "command": "node --import tsx ../../src/cli/index.ts plan change-contract.yaml --config trust.yaml --changed src/worker.ts,src/client.tsx --output .trust/runs/cli-plan.json",
+      "duration_ms": 938,
+      "stdout": "Intent: Add organization invitations without weakening authorization or existing signup behavior.\nApproval: approved\nAuthority: local\nBehaviors: happy-path, authorization, duplicate-submission, expiration, regression\nSurfaces: team-management, authentication\nRisks: authorization, state integrity, mobile ui\nRequired evidence: typecheck, unit-tests, demo-client-bundle, playwright-ui, api-requests, trust-cli, intent-browser, intent-device\nApproved QA missions: 6\n\nSelected: client-build, typecheck, unit-tests\nInvariants: demo-client-bundle\nVerifiers: api-requests, intent-browser, intent-device, playwright-ui, trust-cli\nQA: not required\nChange set: explicit (2 file(s))\nWrote: /Users/jovi/.codex/worktrees/cf1e/verification-layer/examples/demo-app/.trust/runs/cli-plan.json\n",
       "stderr": "",
       "measurements": {
         "attempt": 1,

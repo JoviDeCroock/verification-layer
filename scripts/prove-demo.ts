@@ -2,11 +2,16 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
-import type { TrustReport } from "../packages/core/src/index.js";
+import type { TrustReport } from "../src/core/index.js";
 
 const root = process.cwd();
 const demo = path.join(root, "examples", "demo-app");
 const bin = (name: string) => path.join(root, "node_modules", ".bin", name);
+const basePort = Number.parseInt(process.env.TRUST_DEMO_BASE_PORT ?? "4317", 10);
+
+if (!Number.isInteger(basePort) || basePort < 1 || basePort >= 65_535) {
+  throw new Error("TRUST_DEMO_BASE_PORT must reserve two valid consecutive ports.");
+}
 
 interface ProcessResult {
   code: number;
@@ -91,7 +96,7 @@ async function proveVariant(variant: "broken" | "fixed", port: number): Promise<
     const verification = await run(process.execPath, [
       "--import",
       "tsx",
-      "packages/cli/src/index.ts",
+      "src/cli/index.ts",
       "verify",
       "--config",
       "examples/demo-app/trust.yaml",
@@ -149,8 +154,8 @@ async function proveVariant(variant: "broken" | "fixed", port: number): Promise<
 const build = await run("pnpm", ["--dir", demo, "build"]);
 if (build.code !== 0) throw new Error(`Demo build failed:\n${build.stdout}\n${build.stderr}`);
 
-const broken = await proveVariant("broken", 4317);
-const fixed = await proveVariant("fixed", 4318);
+const broken = await proveVariant("broken", basePort);
+const fixed = await proveVariant("fixed", basePort + 1);
 const summary = {
   proven_at: new Date().toISOString(),
   thesis:

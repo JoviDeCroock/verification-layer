@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  missionSchema,
-  qaExecutorSchema,
-  type ChangeContract,
-} from "../packages/core/src/index.js";
-import { generateMissions } from "../packages/qa/src/index.js";
+import { missionSchema, qaExecutorSchema, type ChangeContract } from "../src/core/index.js";
+import { generateMissions } from "../src/qa/index.js";
 
 describe("intent-derived QA", () => {
   it("derives boundary missions from behavior and risk rather than implementation narration", () => {

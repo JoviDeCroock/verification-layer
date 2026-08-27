@@ -8,8 +8,9 @@ describe("release preparation", () => {
       packages: string[];
     };
     expect(workspace.packages).toEqual(["examples/*"]);
+    await expect(readdir("packages")).rejects.toMatchObject({ code: "ENOENT" });
 
-    const internalModules = await readdir("packages", { withFileTypes: true });
+    const internalModules = await readdir("src", { withFileTypes: true });
     const moduleDirectories = internalModules
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
@@ -29,12 +30,9 @@ describe("release preparation", () => {
       "verifiers",
     ]);
 
-    await expect(readFile("packages/README.md", "utf8")).resolves.toContain(
-      "`executable-trust-layer` package",
-    );
     await Promise.all(
       moduleDirectories.map(async (directory) => {
-        await expect(readFile(`packages/${directory}/package.json`, "utf8")).rejects.toMatchObject({
+        await expect(readFile(`src/${directory}/package.json`, "utf8")).rejects.toMatchObject({
           code: "ENOENT",
         });
       }),
@@ -53,7 +51,8 @@ describe("release preparation", () => {
 
     expect(packageJson.private).toBe(false);
     expect(packageJson.license).toBe("Apache-2.0");
-    expect(packageJson.bin).toEqual({ trust: "./dist/packages/cli/src/index.js" });
+    expect(packageJson.bin).toEqual({ trust: "./dist/cli/index.js" });
+    expect(packageJson.files).toContain("dist");
     expect(packageJson.files).toEqual(expect.arrayContaining(["LICENSE", "CHANGELOG.md"]));
     expect(packageJson.scripts).toMatchObject({
       changeset: "changeset",

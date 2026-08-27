@@ -4,9 +4,9 @@ import {
   missionEvalCandidateSchema,
   missionEvalSuiteSchema,
   missionGenerationInput,
-} from "../packages/evals/src/index.js";
-import { missionSchema } from "../packages/core/src/index.js";
-import { sha256 } from "../packages/core/src/provenance.js";
+} from "../src/evals/index.js";
+import { missionSchema } from "../src/core/index.js";
+import { sha256 } from "../src/core/provenance.js";
 import {
   missionPromptCacheKey,
   missionModelRequestPolicy,

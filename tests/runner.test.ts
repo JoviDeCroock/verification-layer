@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { runProcess, runProcessWithRetries } from "../packages/runner/src/index.js";
+import { runProcess, runProcessWithRetries } from "../src/runner/index.js";
 
 describe("evidence process lifecycle", () => {
   it("terminates a process group when verification is cancelled", async () => {

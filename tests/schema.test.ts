@@ -2,7 +2,7 @@ import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { runProcess } from "../packages/runner/src/index.js";
+import { runProcess } from "../src/runner/index.js";
 
 async function exportSchemas(directory: string, force = false) {
   return runProcess({
@@ -10,7 +10,7 @@ async function exportSchemas(directory: string, force = false) {
     args: [
       "--import",
       "tsx",
-      "packages/cli/src/index.ts",
+      "src/cli/index.ts",
       "schema:export",
       directory,
       ...(force ? ["--force"] : []),

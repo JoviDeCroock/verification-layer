@@ -4,6 +4,6 @@ Add organization invitations without weakening authorization or existing signup 
 
 5/5 behaviors established · 20/20 executable results verified
 
-Report: /Users/jovi/Documents/ChatGPT/verification-layer/examples/demo-app/.trust/runs/fixed/report.json
+Report: /Users/jovi/.codex/worktrees/cf1e/verification-layer/examples/demo-app/.trust/runs/fixed/report.json
 Next: run `trust explain` for details or `trust enable github` for attested CI.
 

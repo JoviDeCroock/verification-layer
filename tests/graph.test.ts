@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { ChangeContract, TrustConfig } from "../packages/core/src/index.js";
-import { createVerificationPlan } from "../packages/graph/src/index.js";
+import type { ChangeContract, TrustConfig } from "../src/core/index.js";
+import { createVerificationPlan } from "../src/graph/index.js";
 
 const config: TrustConfig = {
   version: 1,

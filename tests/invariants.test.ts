@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defineInvariant } from "../packages/invariants/src/index.js";
+import { defineInvariant } from "../src/invariants/index.js";
 
 describe("custom invariant API", () => {
   it("supports baseline-aware repository policy", async () => {

@@ -2,22 +2,15 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  appendAuditJournal,
-  createAuditEntry,
-  parseAuditJournal,
-} from "../packages/core/src/audit.js";
-import {
-  createReportAttestation,
-  generateAuthorityKeyPair,
-} from "../packages/core/src/attestations.js";
+import { appendAuditJournal, createAuditEntry, parseAuditJournal } from "../src/core/audit.js";
+import { createReportAttestation, generateAuthorityKeyPair } from "../src/core/attestations.js";
 import {
   computeVerdict,
   trustConfigSchema,
   trustReportSchema,
   type Evidence,
-} from "../packages/core/src/index.js";
-import { sha256 } from "../packages/core/src/provenance.js";
+} from "../src/core/index.js";
+import { sha256 } from "../src/core/provenance.js";
 
 const temporaryDirectories: string[] = [];
 

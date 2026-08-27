@@ -11,17 +11,17 @@ Add organization invitations without weakening authorization or existing signup 
 ## Implementation
 
 - 2 changed file(s)
-- Commit: `5464033f6c095a3a6030e2860dfa519558f21b81`
-- Branch: `main`
+- Commit: `022f1d6fb1690a4a5e9a64f7bff06c314edc74f9`
+- Branch: `detached or unavailable`
 - Working tree: dirty
 - Change-set source: explicit
 - Contract digest: `1322216099c82749f025a19b68b8c4e5f4fb1e11c363a520ae9ece1b5dc867ef`
-- Policy digest: `945800eee71a66057f63cfd0b92d6e9b83dc5b409b522b35e5bdbda6633364eb`
-- Plan digest: `93afea3a094615859b84b17035966f2194962e031fc20d9c0719d1a333781e91`
+- Policy digest: `ff15f041adf93510255c318cc1d0eafd56ddac0684dc9f0848d576ca14e91fb6`
+- Plan digest: `42da0dcd282ddc1d4845d915dce747896342f1a07a1c6a0a44c9d4b1b6ecf266`
 - Change-set digest: `bf906672942deba40b15d2e4f1c7cb46cd4839af28d645f163cf0e35566bc9d4`
 - Attestation: none
 - Assurance: trial
-- Preview origin: http://127.0.0.1:4317
+- Preview origin: http://127.0.0.1:44317
 
 ## Behavior claims
 

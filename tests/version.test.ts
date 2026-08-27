@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { TRUST_VERSION } from "../packages/core/src/version.js";
+import { TRUST_VERSION } from "../src/core/version.js";
 
 describe("release version", () => {
   it("keeps CLI provenance aligned with package metadata", async () => {
