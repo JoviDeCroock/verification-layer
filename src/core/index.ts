@@ -381,6 +381,7 @@ export const expectedBehaviorSchema = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Behavior IDs must use lowercase kebab-case."),
   description: z.string().min(1),
   evidence: z.array(z.string().min(1)).min(1),
+  evidence_mapping: z.enum(["explicit", "inferred"]).optional(),
 });
 
 export const changeContractSchema = z.object({

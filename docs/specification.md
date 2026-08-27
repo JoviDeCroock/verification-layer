@@ -53,6 +53,10 @@ configured evidence source IDs. All of those sources must also appear in `requir
 References may select a specific structured result with `source#result`, for example
 `api-contracts#unauthorized-user`; this prevents an unrelated result from the same verifier from
 establishing or failing the claim.
+The `evidence_mapping` field distinguishes an explicitly approved relationship from one inferred by
+guided discovery. Passing inferred sources leaves the behavior `not_verified`; users can explicitly
+select configured support with guided `--evidence`, while custom and attested contracts continue to
+review the mapping directly.
 Contracts with unknown surfaces, uncovered behaviors, missing evidence, incomplete approval
 metadata, approval timestamps later than verification, or content changed after approval are invalid.
 `contract:approve` records a canonical SHA-256 digest of the approved contract content so subsequent

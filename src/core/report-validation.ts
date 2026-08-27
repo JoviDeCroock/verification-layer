@@ -28,13 +28,16 @@ export function deriveClaimEvidence(contract: ChangeContract, evidence: Evidence
     const missingSources = resultsByReference
       .filter((item) => !item.results.length)
       .map((item) => item.reference);
-    const status = supporting.some((item) => item.status === "failed")
+    const sourceStatus = supporting.some((item) => item.status === "failed")
       ? "failed"
       : missingSources.length || supporting.some((item) => item.status === "not_verified")
         ? "not_verified"
         : supporting.length > 0 && supporting.every((item) => item.status === "verified")
           ? "verified"
           : "not_verified";
+    const evidenceMapping = behavior.evidence_mapping ?? "explicit";
+    const status =
+      sourceStatus === "verified" && evidenceMapping === "inferred" ? "not_verified" : sourceStatus;
     return {
       id: `claim:${behavior.id}`,
       source_id: `claim:${behavior.id}`,
@@ -43,9 +46,12 @@ export function deriveClaimEvidence(contract: ChangeContract, evidence: Evidence
       summary:
         status === "verified"
           ? `Expected behavior verified: ${behavior.description}`
-          : `Expected behavior was not established: ${behavior.description}`,
+          : sourceStatus === "verified" && evidenceMapping === "inferred"
+            ? `Configured evidence passed, but its relationship to the expected behavior was inferred rather than explicitly approved: ${behavior.description}`
+            : `Expected behavior was not established: ${behavior.description}`,
       measurements: {
         evidence_sources: behavior.evidence.join(","),
+        evidence_mapping: evidenceMapping,
         supporting_results: supporting.length,
         missing_sources: missingSources.join(","),
       },

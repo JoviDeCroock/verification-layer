@@ -55,6 +55,7 @@ import {
   approvalDigest,
   changeSetDigest,
   currentGitIdentity,
+  gitTracksPath,
   resolveGitChangeSet,
   sha256,
 } from "../core/provenance.js";
@@ -242,6 +243,64 @@ async function ensureLocalArtifactsIgnored(repositoryRoot: string): Promise<stri
   return ignoreFile;
 }
 
+async function excludeUntrackedGuidedArtifacts(
+  repositoryRoot: string,
+  changedFiles: string[],
+  artifactFiles: string[],
+): Promise<string[]> {
+  const generated = new Set<string>();
+  for (const file of artifactFiles) {
+    if (await gitTracksPath(repositoryRoot, file)) continue;
+    const relative = path.relative(repositoryRoot, file);
+    if (relative && relative !== ".." && !relative.startsWith(`..${path.sep}`))
+      generated.add(relative.split(path.sep).join("/"));
+  }
+  return changedFiles.filter((file) => !generated.has(file));
+}
+
+async function formatGuidedArtifacts(
+  repositoryRoot: string,
+  artifactFiles: string[],
+): Promise<void> {
+  const packageFile = path.join(repositoryRoot, "package.json");
+  if (!(await fileExists(packageFile))) return;
+  const packageJson = JSON.parse(await readFile(packageFile, "utf8")) as Record<string, unknown>;
+  const dependencies = {
+    ...((packageJson.dependencies ?? {}) as Record<string, string>),
+    ...((packageJson.devDependencies ?? {}) as Record<string, string>),
+  };
+  const formatter = Object.hasOwn(dependencies, "oxfmt")
+    ? { binary: "oxfmt", args: ["--write"] }
+    : Object.hasOwn(dependencies, "prettier")
+      ? { binary: "prettier", args: ["--write"] }
+      : null;
+  if (!formatter) return;
+  const executable = path.join(
+    repositoryRoot,
+    "node_modules",
+    ".bin",
+    `${formatter.binary}${process.platform === "win32" ? ".cmd" : ""}`,
+  );
+  if (!(await fileExists(executable))) return;
+  const files = artifactFiles.filter(
+    (file) =>
+      path.relative(repositoryRoot, file) !== ".." &&
+      !path.relative(repositoryRoot, file).startsWith(`..${path.sep}`),
+  );
+  if (!files.length) return;
+  const result = await runProcess({
+    executable,
+    args: [...formatter.args, ...files],
+    cwd: repositoryRoot,
+    timeoutMs: 30_000,
+    inheritEnv: false,
+  });
+  if (result.exitCode !== 0)
+    throw new Error(
+      `Could not format generated trust artifacts with ${formatter.binary}: ${result.stderr || result.stdout}`,
+    );
+}
+
 async function newestYamlFile(directory: string): Promise<string | undefined> {
   const candidates = (await readdir(directory).catch(() => []))
     .filter((file) => /\.ya?ml$/i.test(file))
@@ -390,9 +449,21 @@ cli
       } catch (error) {
         problems.push(`Report ${reportFile}: ${friendlyErrorMessage(error)}`);
       }
-    const changeSet = identity.headSha
+    const resolvedStatusChangeSet = identity.headSha
       ? await resolveGitChangeSet(discovery.root)
       : { changedFiles: [] };
+    const changeSet = {
+      ...resolvedStatusChangeSet,
+      changedFiles: await excludeUntrackedGuidedArtifacts(
+        discovery.root,
+        resolvedStatusChangeSet.changedFiles,
+        [
+          configFile,
+          path.join(discovery.root, ".trust", ".gitignore"),
+          path.join(discovery.root, ".trust", "contracts", "current.yaml"),
+        ],
+      ),
+    };
     const policyMode = !config
       ? "none"
       : config.authority?.allow_local_approvals === true &&
@@ -579,6 +650,10 @@ cli
 cli
   .command("start [repository]", "Go from a repository and one intent sentence to a local verdict")
   .option("--intent <text>", "User-visible outcome this change must accomplish")
+  .option(
+    "--evidence <id>",
+    "Evidence explicitly supporting the behavior; repeat or comma-separate",
+  )
   .option("--risk <risk>", "Declared risk; repeat or comma-separate")
   .option("--base <ref>", "Git base ref used to derive committed changes")
   .option("--config <file>", "Local policy path; defaults to <repository>/trust.yaml")
@@ -598,10 +673,22 @@ cli
       throw new Error(
         "Guided start requires a Git repository with an initial commit so evidence can be bound to a real change.",
       );
+    const configFile = path.resolve(options.config ?? path.join(discovery.root, "trust.yaml"));
+    const contractFile = path.resolve(
+      options.contract ?? path.join(discovery.root, ".trust", "contracts", "current.yaml"),
+    );
+    const ignoreFile = path.join(discovery.root, ".trust", ".gitignore");
     // Resolve the candidate before writing onboarding artifacts. The generated
     // policy, contract, and report must never become evidence about themselves.
-    const changeSet = await resolveGitChangeSet(discovery.root, options.base);
-    const configFile = path.resolve(options.config ?? path.join(discovery.root, "trust.yaml"));
+    const resolvedChangeSet = await resolveGitChangeSet(discovery.root, options.base);
+    const changeSet = {
+      ...resolvedChangeSet,
+      changedFiles: await excludeUntrackedGuidedArtifacts(
+        discovery.root,
+        resolvedChangeSet.changedFiles,
+        [configFile, contractFile, ignoreFile],
+      ),
+    };
     let config: TrustConfig;
     let createdPolicy = false;
     if (await fileExists(configFile)) {
@@ -635,13 +722,26 @@ cli
         mode: 0o644,
       });
       createdPolicy = true;
+      await formatGuidedArtifacts(discovery.root, [configFile]);
     }
+    if (
+      !createdPolicy &&
+      configFile === path.join(discovery.root, "trust.yaml") &&
+      !(await gitTracksPath(discovery.root, configFile))
+    )
+      await formatGuidedArtifacts(discovery.root, [configFile]);
     const evidence = [
       ...config.checks.map((item) => item.id),
       ...config.invariants.map((item) => item.id),
       ...config.verifiers.map((item) => item.id),
       ...(config.qa.enabled ? ["qa"] : []),
     ];
+    const behaviorEvidence = list(options.evidence);
+    const unknownBehaviorEvidence = behaviorEvidence.filter((id) => !evidence.includes(id));
+    if (unknownBehaviorEvidence.length)
+      throw new Error(
+        `Behavior evidence is not configured: ${unknownBehaviorEvidence.join(", ")}. Available evidence: ${evidence.join(", ")}.`,
+      );
     if (!evidence.length)
       throw new Error(
         `No executable evidence was discovered. Add a test, build, typecheck, or verifier, then rerun trust --intent. Policy: ${configFile}`,
@@ -693,7 +793,8 @@ cli
         {
           id: "primary-behavior",
           description: intent,
-          evidence,
+          evidence: behaviorEvidence.length ? behaviorEvidence : evidence,
+          evidence_mapping: behaviorEvidence.length ? "explicit" : "inferred",
         },
       ],
       affected_surfaces: config.surfaces.map((surface) => surface.id),
@@ -722,15 +823,13 @@ cli
         content_sha256: approvalDigest(approvedContent),
       },
     });
-    const contractFile = path.resolve(
-      options.contract ?? path.join(discovery.root, ".trust", "contracts", "current.yaml"),
-    );
     if (options.contract && (await fileExists(contractFile)))
       throw new Error(
         `Refusing to overwrite existing contract ${contractFile}. Pass --contract with a new path.`,
       );
     await ensureLocalArtifactsIgnored(discovery.root);
     await writeYamlFile(contractFile, contract);
+    await formatGuidedArtifacts(discovery.root, [contractFile]);
     const outputDirectory = path.resolve(discovery.root, String(options.output));
     if (format === "terminal") {
       console.log(`${pc.green("✓")} Approved local intent: ${intent}`);

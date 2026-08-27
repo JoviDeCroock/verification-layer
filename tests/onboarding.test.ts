@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -82,9 +82,28 @@ describe("ridiculously easy onboarding", () => {
         "--intent",
         "Users can enable the feature safely",
       ]);
-      expect(started.exitCode, started.stderr).toBe(0);
-      expect(started.stdout).toContain("TRUSTED · LOCAL ASSURANCE");
-      expect(started.stdout).toContain("1/1 behaviors established");
+      expect(started.exitCode, started.stderr).toBe(1);
+      expect(started.stdout).toContain("INSUFFICIENT EVIDENCE · LOCAL ASSURANCE");
+      expect(started.stdout).toContain("0/1 behaviors established");
+      const inferredReport = await loadTrustReport(
+        path.join(repository, ".trust", "runs", "latest", "report.json"),
+      );
+      expect(inferredReport).toMatchObject({ verdict: "insufficient_evidence" });
+      expect(inferredReport.contract.expected_behaviors[0]).toMatchObject({
+        evidence_mapping: "inferred",
+      });
+
+      const explicitlyMapped = await trust([
+        "start",
+        repository,
+        "--intent",
+        "Users can enable the feature safely",
+        "--evidence",
+        "test",
+      ]);
+      expect(explicitlyMapped.exitCode, explicitlyMapped.stderr).toBe(0);
+      expect(explicitlyMapped.stdout).toContain("TRUSTED · LOCAL ASSURANCE");
+      expect(explicitlyMapped.stdout).toContain("1/1 behaviors established");
 
       const config = await loadTrustConfig(path.join(repository, "trust.yaml"));
       expect(config.checks).toEqual([
@@ -99,6 +118,9 @@ describe("ridiculously easy onboarding", () => {
         path.join(repository, ".trust", "runs", "latest", "report.json"),
       );
       expect(report).toMatchObject({ verdict: "trusted", assurance: { level: "local" } });
+      expect(report.contract.expected_behaviors[0]).toMatchObject({
+        evidence_mapping: "explicit",
+      });
       expect(report.plan.changed_files).toEqual(["feature.js"]);
       expect(await readFile(path.join(repository, ".trust", ".gitignore"), "utf8")).toBe(
         "runs/\nkeys/*.private.pem\n",
@@ -107,6 +129,7 @@ describe("ridiculously easy onboarding", () => {
       const localStatus = await trust(["status", repository, "--format", "json"]);
       expect(localStatus.exitCode, localStatus.stderr).toBe(0);
       expect(JSON.parse(localStatus.stdout)).toMatchObject({
+        repository: { git: { changed_files: ["feature.js"] } },
         setup: { policy_mode: "local" },
         latest_run: { verdict: "trusted", assurance: "local" },
         next: { action: "enable_github" },
@@ -149,6 +172,8 @@ describe("ridiculously easy onboarding", () => {
         repository,
         "--intent",
         "Users can enable the feature safely",
+        "--evidence",
+        "test",
         "--format",
         "json",
       ]);
@@ -162,15 +187,12 @@ describe("ridiculously easy onboarding", () => {
       const repeatedReport = await loadTrustReport(
         path.join(repository, ".trust", "runs", "latest", "report.json"),
       );
-      expect(repeatedReport.plan.changed_files).not.toEqual(
-        expect.arrayContaining([expect.stringMatching(/^\.trust\/runs\//)]),
-      );
+      expect(repeatedReport.plan.changed_files).toEqual(["feature.js"]);
       const verifiedReport = await trust([
         "report:verify",
         path.join(repository, ".trust", "runs", "latest", "report.json"),
         "--config",
         path.join(repository, "trust.yaml"),
-        "--require-trusted",
       ]);
       expect(verifiedReport.exitCode, verifiedReport.stdout + verifiedReport.stderr).toBe(0);
       expect(verifiedReport.stdout).toContain("Report integrity and authority are valid");
@@ -340,10 +362,75 @@ describe("ridiculously easy onboarding", () => {
         repository,
         "--intent",
         "Users can enable the feature safely",
+        "--evidence",
+        "test",
       ]);
       expect(started.exitCode, started.stderr).toBe(0);
       expect(started.stdout).toContain("Using safe local policy");
       expect(started.stdout).toContain("TRUSTED · LOCAL ASSURANCE");
+    } finally {
+      await rm(repository, { recursive: true, force: true });
+    }
+  });
+
+  it("formats generated YAML before running a repository-owned project gate", async () => {
+    const repository = await mkdtemp(path.join(os.tmpdir(), "trust-formatted-start-"));
+    try {
+      await mkdir(path.join(repository, "node_modules", ".bin"), { recursive: true });
+      await symlink(
+        path.resolve("node_modules", "oxfmt"),
+        path.join(repository, "node_modules", "oxfmt"),
+      );
+      await symlink(
+        path.resolve("node_modules", ".bin", "oxfmt"),
+        path.join(repository, "node_modules", ".bin", "oxfmt"),
+      );
+      await writeFile(
+        path.join(repository, "package.json"),
+        `${JSON.stringify(
+          {
+            name: "formatted-starter",
+            scripts: {
+              check: "oxfmt --check trust.yaml .trust/contracts/current.yaml",
+            },
+            devDependencies: { oxfmt: "0.64.0" },
+          },
+          null,
+          2,
+        )}\n`,
+      );
+      await writeFile(path.join(repository, ".oxfmtrc.json"), '{"singleQuote":true}\n');
+      await writeFile(path.join(repository, ".gitignore"), "node_modules/\n");
+      await writeFile(path.join(repository, "feature.js"), "export const enabled = false;\n");
+      await git(repository, ["init", "--initial-branch=main"]);
+      await git(repository, ["config", "user.email", "trust@example.invalid"]);
+      await git(repository, ["config", "user.name", "Trust Fixture"]);
+      await git(repository, ["add", "package.json", ".oxfmtrc.json", ".gitignore", "feature.js"]);
+      await git(repository, ["commit", "-m", "baseline"]);
+      await writeFile(path.join(repository, "feature.js"), "export const enabled = true;\n");
+
+      const started = await trust([
+        "start",
+        repository,
+        "--intent",
+        "Users can enable the formatted feature",
+        "--format",
+        "json",
+      ]);
+
+      expect(started.exitCode, started.stderr).toBe(1);
+      expect(started.stdout, started.stderr).not.toBe("");
+      const result = JSON.parse(started.stdout);
+      expect(result).toMatchObject({
+        report: {
+          verdict: "insufficient_evidence",
+          plan: { changed_files: ["feature.js"], selected_checks: ["project-gate"] },
+        },
+      });
+      expect(result.report.evidence).toContainEqual(
+        expect.objectContaining({ id: "project-gate", status: "verified" }),
+      );
+      expect(await readFile(path.join(repository, "trust.yaml"), "utf8")).toContain("'**/*'");
     } finally {
       await rm(repository, { recursive: true, force: true });
     }

@@ -2,7 +2,12 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { runProcess, runProcessWithRetries } from "../src/runner/index.js";
+import { trustConfigSchema, type VerificationPlan } from "../src/core/index.js";
+import {
+  runProcess,
+  runProcessWithRetries,
+  runSelectedChecks,
+} from "../src/runner/index.js";
 
 describe("evidence process lifecycle", () => {
   it("terminates a process group when verification is cancelled", async () => {
@@ -48,5 +53,60 @@ describe("evidence process lifecycle", () => {
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
+  });
+
+  it("treats denied loopback binding as insufficient infrastructure evidence", async () => {
+    const config = trustConfigSchema.parse({
+      version: 1,
+      repository: { name: "infrastructure-fixture", root: "." },
+      knowledge: { sources: [] },
+      execution: { allow_shell_commands: false, inherit_environment: false },
+      checks: [
+        {
+          id: "server-test",
+          kind: "test",
+          executable: process.execPath,
+          args: [
+            "-e",
+            "process.stderr.write('Error: listen EPERM: operation not permitted 127.0.0.1'); process.exit(1)",
+          ],
+          cwd: ".",
+          env: {},
+          scope: ["**/*"],
+          tags: [],
+        },
+      ],
+      surfaces: [
+        {
+          id: "repository",
+          paths: ["**/*"],
+          requires: ["server-test"],
+          risks: [],
+          depends_on: [],
+        },
+      ],
+    });
+    const plan: VerificationPlan = {
+      version: 1,
+      contract_id: "infrastructure-change",
+      created_at: new Date().toISOString(),
+      changed_files: ["src/server.ts"],
+      affected_surfaces: ["repository"],
+      selected_checks: ["server-test"],
+      selected_invariants: [],
+      selected_verifiers: [],
+      qa_required: false,
+      selection_reasons: {},
+    };
+
+    const evidence = await runSelectedChecks(config, plan, process.cwd());
+
+    expect(evidence).toContainEqual(
+      expect.objectContaining({
+        id: "server-test",
+        status: "not_verified",
+        reason: expect.stringContaining("denied permission"),
+      }),
+    );
   });
 });

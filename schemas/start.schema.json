@@ -168,6 +168,13 @@
                           "type": "string",
                           "minLength": 1
                         }
+                      },
+                      "evidence_mapping": {
+                        "type": "string",
+                        "enum": [
+                          "explicit",
+                          "inferred"
+                        ]
                       }
                     },
                     "required": [

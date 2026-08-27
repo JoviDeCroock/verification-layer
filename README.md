@@ -44,6 +44,14 @@ No hand-edited YAML, keys, schema export, or shell-command permission is require
 Generated run artifacts and private keys are ignored through `.trust/.gitignore`; the current
 contract remains visible so it can be reviewed and committed for CI.
 
+Discovery prefers a repository-owned `check` or `verify` script as one canonical project gate and
+does not also run the generic scripts or the same Playwright suite a second time. Passing checks do
+not by themselves prove that an arbitrary intent was achieved: the guided contract records their
+intent relationship as `inferred`, so the result is `insufficient_evidence` until the user explicitly
+maps supporting evidence, for example `--evidence project-gate`. Generated YAML is formatted with an
+installed Oxfmt or Prettier before the project gate runs. Untracked guided policy and contract files
+remain outside later Git-derived implementation change sets.
+
 At any point, `pnpm trust status` summarizes the current state and prints one recommended next
 command. It is also the recovery entry point when a later command reports missing setup.
 
@@ -157,8 +165,10 @@ lifecycle at signing time, while current revocation immediately fails verificati
 policy digest. `trust doctor` rejects deployments with no active authority and warns before expiry.
 
 Discovered package scripts use structured executable-and-argument checks, so generated policies can
-run them without granting shell authority. Generated policies still deny shell-backed checks and
-full environment inheritance. Repositories that
+run them without granting shell authority. A root `check` or `verify` script takes precedence as the
+repository-owned project gate; otherwise discovery falls back to typecheck, lint, test, E2E, build,
+and non-duplicated Playwright evidence. Generated policies still deny shell-backed checks and full
+environment inheritance. Repositories that
 trust their checked-in command policy may opt into `execution.allow_shell_commands`; structured CLI
 and Playwright verifiers receive only a small process environment unless
 `execution.inherit_environment` is explicitly enabled. `trust doctor` reports every fixture or

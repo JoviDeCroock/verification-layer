@@ -73,6 +73,18 @@ export async function resolveGitChangeSet(
   return { changedFiles, ...(baseSha ? { baseSha } : {}) };
 }
 
+export async function gitTracksPath(repositoryRoot: string, file: string): Promise<boolean> {
+  const relative = path.relative(repositoryRoot, path.resolve(file));
+  if (
+    !relative ||
+    relative === ".." ||
+    relative.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relative)
+  )
+    return false;
+  return (await git(repositoryRoot, ["ls-files", "--error-unmatch", "--", relative])) !== null;
+}
+
 export interface ProvenanceInput {
   config: TrustConfig;
   contract: ChangeContract;

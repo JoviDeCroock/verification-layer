@@ -203,6 +203,39 @@ describe("trust authority", () => {
     expect(report.provenance.repository.changed_files_source).toBe("explicit");
   });
 
+  it("does not convert an inferred evidence mapping into a verified behavior", async () => {
+    const outputDirectory = await mkdtemp(path.join(os.tmpdir(), "trust-inferred-claim-"));
+    temporaryDirectories.push(outputDirectory);
+    const inferred = contract({
+      expected_behaviors: [
+        {
+          id: "behavior-works",
+          description: "the behavior works",
+          evidence: ["behavior-check"],
+          evidence_mapping: "inferred",
+        },
+      ],
+    });
+
+    const report = await verifyChange({
+      config: config(),
+      contract: inferred,
+      repositoryRoot: process.cwd(),
+      changedFiles: ["src/behavior.ts"],
+      changedFilesSource: "explicit",
+      outputDirectory,
+    });
+
+    expect(report.verdict).toBe("insufficient_evidence");
+    expect(report.evidence).toContainEqual(
+      expect.objectContaining({
+        id: "claim:behavior-works",
+        status: "not_verified",
+        summary: expect.stringContaining("inferred rather than explicitly approved"),
+      }),
+    );
+  });
+
   it("rejects explicit change sets unless repository policy allows fixtures", async () => {
     const outputDirectory = await mkdtemp(path.join(os.tmpdir(), "trust-explicit-change-"));
     temporaryDirectories.push(outputDirectory);

@@ -206,6 +206,14 @@ function missingTestResultReason(
   return undefined;
 }
 
+function infrastructureBlockerReason(result: CommandResult): string | undefined {
+  if (result.exitCode === 0) return undefined;
+  const output = `${result.stdout}\n${result.stderr}`;
+  if (/\blisten (?:EPERM|EACCES): (?:operation not permitted|permission denied)\b/i.test(output))
+    return "The execution environment denied permission to bind a local listening socket.";
+  return undefined;
+}
+
 export async function runSelectedChecks(
   config: TrustConfig,
   plan: VerificationPlan,
@@ -243,17 +251,30 @@ export async function runSelectedChecks(
     );
     for (const [index, result] of results.entries()) {
       const missingTestResult = missingTestResultReason(check.kind, result);
+      const infrastructureBlocker = infrastructureBlockerReason(result);
       evidence.push({
         id: index === results.length - 1 ? check.id : `${check.id}:attempt-${index + 1}`,
         source_id: check.id,
         category: categoryFor(check.kind),
-        status: result.exitCode !== 0 ? "failed" : missingTestResult ? "not_verified" : "verified",
-        summary: missingTestResult
-          ? `${check.label ?? check.id} completed without executing tests.`
-          : result.exitCode === 0
-            ? `${check.label ?? check.id} passed${results.length > 1 ? ` on attempt ${index + 1}` : ""}.`
-            : `${check.label ?? check.id} failed on attempt ${index + 1}${result.timedOut ? " (timed out)" : result.aborted ? " (cancelled)" : ""}.`,
-        ...(missingTestResult ? { reason: missingTestResult } : {}),
+        status: infrastructureBlocker
+          ? "not_verified"
+          : result.exitCode !== 0
+            ? "failed"
+            : missingTestResult
+              ? "not_verified"
+              : "verified",
+        summary: infrastructureBlocker
+          ? `${check.label ?? check.id} was blocked by the execution environment.`
+          : missingTestResult
+            ? `${check.label ?? check.id} completed without executing tests.`
+            : result.exitCode === 0
+              ? `${check.label ?? check.id} passed${results.length > 1 ? ` on attempt ${index + 1}` : ""}.`
+              : `${check.label ?? check.id} failed on attempt ${index + 1}${result.timedOut ? " (timed out)" : result.aborted ? " (cancelled)" : ""}.`,
+        ...(infrastructureBlocker
+          ? { reason: infrastructureBlocker }
+          : missingTestResult
+            ? { reason: missingTestResult }
+            : {}),
         command: "command" in check ? check.command : [check.executable, ...check.args].join(" "),
         duration_ms: result.durationMs,
         stdout: result.stdout.slice(-12_000),

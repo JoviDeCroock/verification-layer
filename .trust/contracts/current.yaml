@@ -1,16 +1,17 @@
 version: 1
-id: move-all-internal-implementation-modules-into-one-root-src-tree-while-pr
-intent: Move all internal implementation modules into one root src tree while preserving the trust
-  CLI and package behavior
+id: guided-verification-uses-canonical-project-gates-without-overstating-inf
+intent: Guided verification uses canonical project gates without overstating inferred behavior,
+  excludes generated artifacts on reruns, improves discovery accuracy, and classifies denied local
+  sockets as insufficient evidence
 expected_behaviors:
   - id: primary-behavior
-    description: Move all internal implementation modules into one root src tree while preserving the
-      trust CLI and package behavior
+    description:
+      Guided verification uses canonical project gates without overstating inferred behavior,
+      excludes generated artifacts on reruns, improves discovery accuracy, and classifies denied
+      local sockets as insufficient evidence
     evidence:
-      - typecheck
-      - lint
       - test
-      - build
+    evidence_mapping: explicit
 affected_surfaces:
   - repository
 risks: []
@@ -21,23 +22,27 @@ required_evidence:
   - build
 qa_missions:
   - id: primary-behavior
-    title: Move all internal implementation modules into one root src tree while preserving the trust
-      CLI and package behavior
-    objective: Move all internal implementation modules into one root src tree while preserving the
-      trust CLI and package behavior
+    title: Guided verification uses canonical project gates without overstating inferred behavior,
+      excludes generated artifacts on reruns, improves discovery accuracy, and classifies denied
+      local sockets as insufficient evidence
+    objective:
+      Guided verification uses canonical project gates without overstating inferred behavior,
+      excludes generated artifacts on reruns, improves discovery accuracy, and classifies denied
+      local sockets as insufficient evidence
     derived_from:
-      - Move all internal implementation modules into one root src tree while preserving the trust
-        CLI and package behavior
+      - Guided verification uses canonical project gates without overstating inferred behavior,
+        excludes generated artifacts on reruns, improves discovery accuracy, and classifies denied
+        local sockets as insufficient evidence
     viewport: desktop
     generation:
       method: deterministic
       generator: executable-trust-layer/intent-heuristics
       version: "1"
-      input_sha256: 08c44b4db0e2884c9645610e725483cbaa5e1b4c520e17bfb4f5e0418153c4d2
+      input_sha256: b94202664b983a4eae34c99c77ddc4edc7ca1f2d5211d94dae543e4b1742eefb
 excluded: []
 approval:
   status: approved
   approved_by: local-user
-  approved_at: 2026-08-26T18:12:25.722Z
-  content_sha256: 9aa76694722c5b0c1976f3774a6807fc63e12d497d63561abc15563a79b01248
+  approved_at: 2026-08-27T07:06:07.429Z
+  content_sha256: 0aaae0f1f26df3eb15822e9eb8b19eec2449672378d346d7c92fecba693b9a48
   method: local

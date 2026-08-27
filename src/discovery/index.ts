@@ -34,8 +34,28 @@ async function exists(file: string): Promise<boolean> {
   }
 }
 
-async function files(root: string, patterns: string[]): Promise<string[]> {
-  return fg(patterns, { cwd: root, ignore: ignored, onlyFiles: true, dot: true });
+async function files(
+  root: string,
+  patterns: string[],
+  extraIgnored: string[] = [],
+): Promise<string[]> {
+  return fg(patterns, {
+    cwd: root,
+    ignore: [...ignored, ...extraIgnored],
+    onlyFiles: true,
+    dot: true,
+  });
+}
+
+async function nestedRepositoryIgnores(root: string): Promise<string[]> {
+  const markers = await fg("**/.git", {
+    cwd: root,
+    dot: true,
+    onlyFiles: false,
+    followSymbolicLinks: false,
+    ignore: [".git"],
+  });
+  return markers.map((marker) => `${path.posix.dirname(marker)}/**`);
 }
 
 function scriptCheck(
@@ -61,6 +81,8 @@ function scriptCheck(
 
 export async function discoverRepository(rootInput: string): Promise<DiscoveryReport> {
   const root = path.resolve(rootInput);
+  const nestedRepositories = await nestedRepositoryIgnores(root);
+  const repositoryFiles = (patterns: string[]) => files(root, patterns, nestedRepositories);
   const packageFile = path.join(root, "package.json");
   const packageJson = (await exists(packageFile))
     ? (JSON.parse(await readFile(packageFile, "utf8")) as Record<string, unknown>)
@@ -70,7 +92,7 @@ export async function discoverRepository(rootInput: string): Promise<DiscoveryRe
     ...((packageJson.dependencies ?? {}) as Record<string, string>),
     ...((packageJson.devDependencies ?? {}) as Record<string, string>),
   };
-  const allFiles = await files(root, ["**/*"]);
+  const allFiles = await repositoryFiles(["**/*"]);
   const has = (pattern: RegExp) => allFiles.some((file) => pattern.test(file));
   const dep = (name: string) => Object.hasOwn(dependencies, name);
   const found: DiscoveryFinding[] = [];
@@ -124,11 +146,20 @@ export async function discoverRepository(rootInput: string): Promise<DiscoveryRe
     checks.push(scriptCheck(id, kind, packageManager, script));
     found.push({ label: `${id} command`, detail: [packageManager, ...args].join(" ") });
   };
-  addScript("typecheck", "static", ["typecheck", "types", "check:types"]);
-  addScript("lint", "static", ["lint"]);
-  addScript("test", "test", ["test", "test:unit"]);
-  addScript("e2e", "e2e", ["test:e2e", "e2e", "playwright"]);
-  addScript("build", "static", ["build"]);
+  const projectGate = ["check", "verify"].find((candidate) => scripts[candidate]);
+  if (projectGate && packageManager) {
+    checks.push(scriptCheck("project-gate", "custom", packageManager, projectGate));
+    found.push({
+      label: "project gate",
+      detail: `${packageManager} run ${projectGate}`,
+    });
+  } else {
+    addScript("typecheck", "static", ["typecheck", "types", "check:types"]);
+    addScript("lint", "static", ["lint"]);
+    addScript("test", "test", ["test", "test:unit"]);
+    addScript("e2e", "e2e", ["test:e2e", "e2e", "playwright"]);
+    addScript("build", "static", ["build"]);
+  }
   const measurementScript = ["size", "size-limit", "benchmark", "bench"].find(
     (candidate) => scripts[candidate],
   );
@@ -138,7 +169,7 @@ export async function discoverRepository(rootInput: string): Promise<DiscoveryRe
       detail: `${packageManager} ${measurementScript}`,
     });
 
-  const knowledge = await files(root, [
+  const knowledge = await repositoryFiles([
     "AGENTS.md",
     "**/AGENTS.md",
     "CLAUDE.md",
@@ -147,21 +178,27 @@ export async function discoverRepository(rootInput: string): Promise<DiscoveryRe
     "docs/**/*.{md,mdx}",
     "adr/**/*.{md,mdx}",
     "ADRs/**/*.{md,mdx}",
+    "docs/decisions/**/*.{md,mdx}",
   ]);
   if (knowledge.some((file) => file.endsWith("AGENTS.md"))) found.push({ label: "AGENTS.md" });
-  const adrs = knowledge.filter((file) => /(^|\/)(adr|ADRs)(\/|$)/.test(file));
+  const adrs = knowledge.filter((file) => /(^|\/)(adr|adrs|decisions)(\/|$)/i.test(file));
   if (adrs.length) found.push({ label: `${adrs.length} ADR${adrs.length === 1 ? "" : "s"}` });
 
-  const ci = await files(root, [".github/workflows/*.{yml,yaml}", ".gitlab-ci.yml"]);
+  const ci = await repositoryFiles([".github/workflows/*.{yml,yaml}", ".gitlab-ci.yml"]);
   if (ci.length) found.push({ label: "CI workflows", detail: `${ci.length} file(s)` });
-  const testFiles = await files(root, ["**/*.{test,spec}.{ts,tsx,js,jsx,mjs,cjs}"]);
-  if (dep("vitest") || has(/vitest\.config\.(ts|js|mjs|cjs)$/))
+  const testFiles = await repositoryFiles(["**/*.{test,spec}.{ts,tsx,js,jsx,mjs,cjs}"]);
+  if (dep("vitest") || has(/(^|\/)vitest\.config\.(ts|js|mjs|cjs)$/))
     found.push({ label: "Vitest", detail: `${testFiles.length} test file(s)` });
-  const rootPlaywright = await files(root, ["playwright.config.{ts,js,mjs,cjs}"]);
-  const playwright = await files(root, ["**/playwright.config.{ts,js,mjs,cjs}"]);
+  const rootPlaywright = await repositoryFiles(["playwright.config.{ts,js,mjs,cjs}"]);
+  const playwright = await repositoryFiles(["**/playwright.config.{ts,js,mjs,cjs}"]);
   if (playwright.length || dep("@playwright/test")) found.push({ label: "Playwright" });
   const verifiers: TrustConfig["verifiers"] = [];
-  if (rootPlaywright.length && packageManager) {
+  if (
+    !projectGate &&
+    !checks.some((check) => check.kind === "e2e") &&
+    rootPlaywright.length &&
+    packageManager
+  ) {
     verifiers.push({
       id: "playwright",
       label: "Discovered Playwright suite",
@@ -177,7 +214,7 @@ export async function discoverRepository(rootInput: string): Promise<DiscoveryRe
       timeout_ms: 120_000,
     });
   }
-  const customLint = await files(root, [
+  const customLint = await repositoryFiles([
     "**/eslint-rules/**/*.{ts,js}",
     "**/*eslint-plugin*/**/*.{ts,js}",
   ]);
@@ -200,7 +237,7 @@ export async function discoverRepository(rootInput: string): Promise<DiscoveryRe
     }
   }
   const routes = [...routeFiles, ...inlineRoutes];
-  const packageFiles = await files(root, ["packages/*/package.json", "apps/*/package.json"]);
+  const packageFiles = await repositoryFiles(["packages/*/package.json", "apps/*/package.json"]);
   const packages = packageFiles.map((file) => path.dirname(file));
 
   const surfaces: TrustConfig["surfaces"] = packages.map((packagePath) => ({
